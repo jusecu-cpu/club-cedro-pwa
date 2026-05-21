@@ -32,13 +32,13 @@ const linksPago = [
   {
     concepto: 'Mensualidad Bogotá',
     descripcion: 'Mensualidad sede Bogotá Capital',
-    valor: '$120.000',
+    valor: '',
     url: 'https://www.mipagoamigo.com/MPA_WebSite/ServicePayments/StartPayment?id=1984&searchedAgreementName=CEDRO%20BOGOTA%20CAPITAL%20MENSUALIDADES',
   },
   {
     concepto: 'Mensualidad Sabana / Chía',
     descripcion: 'Mensualidad sede Sabana Chía',
-    valor: '$120.000',
+    valor: '',
     url: 'https://www.mipagoamigo.com/MPA_WebSite/ServicePayments/StartPayment?id=1986&searchedAgreementName=CEDRO%20SABANA%20CHIA%20MENSUALIDADES',
   },
 ];
@@ -747,7 +747,9 @@ function PortalTitle({ icono, titulo }) {
       <div style={styles.portalIcon}>{icono}</div>
       <div>
         <small>Portal</small>
-        <h2>{titulo}</h2>
+        <h2 style={{ color: '#082567', margin: 0 }}>
+  {titulo}
+</h2>
       </div>
     </section>
   );
@@ -1094,7 +1096,9 @@ function DeportistaDetalle({ deportista, iniciales, onActualizar }) {
 
           <div style={styles.nombreBox}>
             <small>Nombre deportista</small>
-            <h1>{deportista.deportista_nombre}</h1>
+            <h1 style={{ color: '#082567' }}>
+  {deportista.deportista_nombre}
+</h1>
           </div>
         </div>
 
@@ -3109,8 +3113,9 @@ function PanelEntrenador({
   const [listaAsistencia, setListaAsistencia] = useState([]);
   const [eventoEditando, setEventoEditando] = useState(null);
   const [eventoCancelando, setEventoCancelando] = useState(null);
+   const [deportistasAsistencia, setDeportistasAsistencia] = useState([]);
   const [motivoCancelacion, setMotivoCancelacion] = useState('');
-  const [nuevoEquipoEntrenador, setNuevoEquipoEntrenador] = useState({
+     const [nuevoEquipoEntrenador, setNuevoEquipoEntrenador] = useState({
     nombre: '',
     sede_id: '',
     categoria_id: '',
@@ -3356,49 +3361,55 @@ function PanelEntrenador({
     cargarEntrenador();
   }
 
-  async function abrirAsistencia(evento) {
-    setEventoAsistencia(evento);
+  async function abrirAsistencia(ev) {
 
+    setEventoAsistencia(ev);
+  
     const { data, error } = await supabase
       .from('equipo_deportista')
-      .select(
-        `
+      .select(`
         deportista:deportistas(
           id,
           deportista_nombre,
-          deportista_documento
+          foto_url
         )
-      `
-      )
-      .eq('equipo_id', evento.equipo_id)
-      .eq('estado', 'activo');
-
+      `)
+      .eq('equipo_id', ev.equipo_id);
+  
     if (error) {
       console.error(error);
-      alert('No se pudo cargar la lista de deportistas.');
+      alert('Error cargando deportistas');
       return;
     }
-
-    const { data: asistenciasGuardadas } = await supabase
-      .from('asistencia_eventos')
-      .select('id, deportista_id, estado_asistencia')
-      .eq('evento_id', evento.id);
-
-    const lista = (data || []).map((item) => {
-      const guardada = (asistenciasGuardadas || []).find(
-        (a) => a.deportista_id === item.deportista.id
-      );
-
-      return {
-        deportista_id: item.deportista.id,
-        nombre: item.deportista.deportista_nombre,
-        documento: item.deportista.deportista_documento,
-        estado: guardada?.estado_asistencia || '',
-      };
-    });
-
-    setListaAsistencia(lista);
+  
+    setDeportistasAsistencia(data || []);
   }
+
+  async function registrarAsistencia(
+    eventoId,
+    deportistaId,
+    estado
+  ) {
+  
+    const { error } = await supabase
+      .from('asistencia_eventos')
+      .upsert([
+        {
+          evento_id: eventoId,
+          deportista_id: deportistaId,
+          estado_asistencia: estado,
+        }
+      ]);
+  
+    if (error) {
+      console.error(error);
+      alert('Error guardando asistencia');
+      return;
+    }
+  
+    alert('Asistencia guardada');
+  }
+
 
   async function guardarAsistencia() {
     if (!eventoAsistencia || listaAsistencia.length === 0) {
@@ -4199,44 +4210,47 @@ function PanelEntrenador({
                     </small>
                   </div>
 
-                  <button
-                    style={styles.adminSmallBtn}
-                    onClick={() => {
-                      const ahora = new Date();
-                      const inicioEvento = new Date(
-                        `${ev.fecha}T${ev.hora_inicio}`
-                      );
+                 <div style={styles.eventoAcciones}>
 
-                      if (ahora < inicioEvento) {
-                        alert(
-                          'La asistencia solo se puede diligenciar cuando el evento ya haya iniciado.'
-                        );
-                        return;
-                      }
+  <button
+    style={styles.botonMini}
+    onClick={() => {
+      const ahora = new Date();
+      const inicioEvento = new Date(
+        `${ev.fecha}T${ev.hora_inicio}`
+      );
 
-                      abrirAsistencia(ev);
-                    }}
-                  >
-                    Asistencia
-                  </button>
-                  <div style={styles.eventoAcciones}>
-                    <button
-                      style={styles.botonSecundario}
-                      onClick={() => setEventoEditando(ev)}
-                    >
-                      Editar
-                    </button>
+      if (ahora < inicioEvento) {
+        alert(
+          'La asistencia solo se puede diligenciar cuando el evento ya haya iniciado.'
+        );
+        return;
+      }
 
-                    <button
-                      style={styles.botonCancelar}
-                      onClick={() => {
-                        setEventoCancelando(ev);
-                        setMotivoCancelacion('');
-                      }}
-                    >
-                      Cancelar
-                    </button>
-                  </div>
+      abrirAsistencia(ev);
+    }}
+  >
+    Asistencia
+  </button>
+
+  <button
+    style={styles.botonMini}
+    onClick={() => setEventoEditando(ev)}
+  >
+    Editar
+  </button>
+
+  <button
+    style={styles.botonMiniDanger}
+    onClick={() => {
+      setEventoCancelando(ev);
+      setMotivoCancelacion('');
+    }}
+  >
+    Cancelar
+  </button>
+
+</div>
                 </div>
               ))}
             </section>
@@ -4615,27 +4629,26 @@ const styles = {
 
   loginInput: {
     width: '100%',
+    padding: '14px',
     border: 'none',
-    borderBottom: '1px solid #d7d7e2',
-    padding: '8px 0 14px',
-    fontSize: '19px',
-    color: '#21123f',
+    borderBottom: '1px solid #d7def0',
+    background: '#ffffff',
+    color: '#082567',
+    fontSize: '16px',
     outline: 'none',
-    marginBottom: '20px',
-    boxSizing: 'border-box',
   },
 
   loginButton: {
     width: '100%',
-    background: '#334499',
-    color: 'white',
+    marginTop: '18px',
+    padding: '14px',
     border: 'none',
-    padding: '15px',
-    borderRadius: '28px',
-    fontSize: '18px',
-    fontWeight: '700',
-    boxShadow: '0 5px 10px rgba(0,0,0,0.18)',
-    cursor: 'pointer',
+    borderRadius: '24px',
+    background: '#3949ab',
+    color: '#fff',
+    fontWeight: '800',
+    fontSize: '16px',
+    boxShadow: '0 6px 12px rgba(0,0,0,0.18)',
   },
 
   forgotButton: {
@@ -4668,19 +4681,23 @@ const styles = {
 
   padreContainer: {
     minHeight: '100vh',
-    paddingBottom: '105px',
-    background: '#f6f7fb',
+    background: '#f4f6fb',
+    padding: '0 10px 90px',
+    overflowY: 'auto',
   },
 
   padreHeader: {
-    background: 'linear-gradient(135deg, #002f7e, #061b4f)',
-    height: '170px',
-    padding: '18px',
+    position: 'sticky',
+    top: 0,
+    zIndex: 50,
+    height: '82px',
+    background: '#082567',
+    borderBottomLeftRadius: '18px',
+    borderBottomRightRadius: '18px',
     display: 'flex',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    borderBottomLeftRadius: '22px',
-    borderBottomRightRadius: '22px',
+    padding: '12px 22px',
   },
 
   menuBtn: {
@@ -4692,8 +4709,8 @@ const styles = {
   },
 
   headerLogo: {
-    width: '105px',
-    height: '105px',
+    width: '82px',
+    height: '82px',
     objectFit: 'contain',
   },
 
@@ -4708,14 +4725,15 @@ const styles = {
   },
 
   padreMainCard: {
-    background: 'white',
-    margin: '-48px 10px 14px',
+    marginTop: '22px',
+    marginBottom: '18px',
+    background: '#ffffff',
     borderRadius: '18px',
     padding: '18px',
     display: 'flex',
     alignItems: 'center',
-    gap: '18px',
-    boxShadow: '0 6px 18px rgba(0,0,0,0.10)',
+    gap: '16px',
+    boxShadow: '0 6px 16px rgba(0,0,0,0.08)',
   },
 
   fotoDeportista: {
@@ -4772,24 +4790,36 @@ const styles = {
   gridResumen: {
     display: 'grid',
     gridTemplateColumns: '1fr 1fr',
-    gap: '10px',
-    padding: '0 10px',
+    gap: '14px',
+    marginTop: '18px',
+    marginBottom: '18px',
+  },
+
+  entrenadorCard: {
+    background: '#ffffff',
+    borderRadius: '18px',
+    padding: '18px',
+    textAlign: 'center',
+    color: '#082567',
+    boxShadow: '0 6px 16px rgba(0,0,0,0.08)',
   },
 
   resumenCard: {
-    background: 'white',
-    borderRadius: '14px',
-    padding: '20px 10px',
+    background: '#ffffff',
+    borderRadius: '16px',
+    padding: '18px',
     textAlign: 'center',
-    boxShadow: '0 5px 14px rgba(0,0,0,0.08)',
-    minHeight: '95px',
+    color: '#082567',
+    boxShadow: '0 6px 16px rgba(0,0,0,0.08)',
   },
 
   seccionTitulo: {
-    padding: '16px 10px 8px',
     display: 'flex',
     justifyContent: 'space-between',
-    color: '#1d1d45',
+    alignItems: 'center',
+    marginTop: '20px',
+    marginBottom: '10px',
+    color: '#082567',
   },
 
   linkPagoCard: {
@@ -4837,14 +4867,15 @@ const styles = {
   },
 
   portalTitleCard: {
-    background: 'white',
-    margin: '-48px 14px 16px',
-    borderRadius: '14px',
-    padding: '16px',
+    background: '#ffffff',
+    borderRadius: '18px',
+    padding: '18px',
     display: 'flex',
     alignItems: 'center',
     gap: '14px',
-    boxShadow: '0 6px 18px rgba(0,0,0,0.10)',
+    marginBottom: '18px',
+    boxShadow: '0 6px 16px rgba(0,0,0,0.08)',
+    color: '#082567',
   },
 
   portalIcon: {
@@ -4908,12 +4939,22 @@ const styles = {
     display: 'block',
   },
 
+resumenCard: {
+  background: '#ffffff',
+  borderRadius: '16px',
+  padding: '18px',
+  textAlign: 'center',
+  color: '#082567',
+  boxShadow: '0 6px 16px rgba(0,0,0,0.08)',
+},
+
   nombreBox: {
     background: '#f7f9ff',
     border: '1px solid #dbe4f7',
     borderRadius: '12px',
     padding: '16px',
     textAlign: 'center',
+
   },
 
   infoLine: {
@@ -5140,11 +5181,12 @@ const styles = {
   input: {
     width: '100%',
     padding: '12px',
-    marginTop: '6px',
-    borderRadius: '10px',
-    border: '1px solid #dce1ee',
-    boxSizing: 'border-box',
+    borderRadius: '12px',
+    border: '1px solid #d7def0',
+    background: '#ffffff',
+    color: '#082567',
     fontSize: '15px',
+    outline: 'none',
   },
 
   legalRow: {
@@ -5277,12 +5319,13 @@ const styles = {
     cursor: 'pointer',
   },
 
-  adminTitle: {
-    color: '#1d1d45',
-    margin: '12px 0 14px',
-    fontSize: '24px',
-    fontWeight: '800',
+  resumenCard: {
+    background: '#ffffff',
+    borderRadius: '16px',
+    padding: '18px',
     textAlign: 'center',
+    color: '#082567',
+    boxShadow: '0 6px 16px rgba(0,0,0,0.08)',
   },
 
   adminCardsGrid: {
@@ -5815,6 +5858,104 @@ const styles = {
     fontWeight: '800',
     textAlign: 'center',
   },
+
+  eventoAcciones: {
+    display: 'flex',
+    gap: '6px',
+    justifyContent: 'center',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    marginTop: '12px',
+    width: '100%',
+  },
+  
+  botonMini: {
+    flex: '1',
+    minWidth: '82px',
+    border: 'none',
+    borderRadius: '10px',
+    background: '#3949ab',
+    color: '#fff',
+    padding: '9px 6px',
+    fontWeight: '800',
+    fontSize: '12px',
+  },
+  
+  botonMiniDanger: {
+    flex: '1',
+    minWidth: '82px',
+    border: 'none',
+    borderRadius: '10px',
+    background: '#d64545',
+    color: '#fff',
+    padding: '9px 6px',
+    fontWeight: '800',
+    fontSize: '12px',
+  },
+
+  modalInternoGrande: {
+    background: '#fff',
+    borderRadius: '22px',
+    padding: '22px',
+    width: '92%',
+    maxHeight: '85vh',
+    overflowY: 'auto',
+  },
+
+  listaAsistencia: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '14px',
+    marginTop: '18px',
+  },
+
+  cardAsistencia: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    background: '#f4f6fb',
+    borderRadius: '16px',
+    padding: '12px',
+  },
+
+  asistenciaInfo: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+  },
+
+  asistenciaBtns: {
+    display: 'flex',
+    gap: '8px',
+  },
+
+  btnAsistio: {
+    border: 'none',
+    background: '#2d6a4f',
+    color: '#fff',
+    borderRadius: '10px',
+    padding: '10px 14px',
+    fontSize: '18px',
+  },
+
+  btnNoAsistio: {
+    border: 'none',
+    background: '#c1121f',
+    color: '#fff',
+    borderRadius: '10px',
+    padding: '10px 14px',
+    fontSize: '18px',
+  },
+
+  modalInternoGrande: {
+    background: '#fff',
+    borderRadius: '22px',
+    padding: '22px',
+    width: '92%',
+    maxHeight: '85vh',
+    overflowY: 'auto',
+  },
+
 };
 
 export default App;
