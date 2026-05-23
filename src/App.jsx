@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
 import { supabase } from './lib/supabase';
-import './App.css';
 import { styles } from './styles/styles';
+import CrearPassword from './pages/CrearPassword';
+import './App.css';
 import PanelEntrenador from './pages/entrenador/PanelEntrenador';
 import AdminAgenda from './pages/admin/AdminAgenda';
 import AdminEquipos from './pages/admin/AdminEquipos';
+import ActivarCuenta from './pages/ActivarCuenta';
 import logo from './assets/logo.png';
 
 const paises = [
@@ -61,6 +63,20 @@ function App() {
             setUsuario={setUsuario}
             setPerfil={setPerfil}
           />
+        )}
+
+        {pantalla === 'activar' && (
+         <ActivarCuenta
+        setPantalla={setPantalla}
+         />
+        )}
+
+        {pantalla === 'crear-password' && (
+          <CrearPassword
+       setPantalla={setPantalla}
+       setUsuario={setUsuario}
+       setPerfil={setPerfil}
+       />
         )}
 
         {pantalla === 'registro' && (
@@ -244,9 +260,9 @@ function Login({ setPantalla, setUsuario, setPerfil }) {
 
       <button
         style={styles.createAccountButton}
-        onClick={() => setPantalla('registro')}
+        onClick={() => setPantalla('activar')}
       >
-        Crear cuenta / Inscribir deportista
+        Activar cuenta / Inscribir deportista
       </button>
     </main>
   );
