@@ -1,6 +1,8 @@
 import { useState } from 'react';
-import { supabase } from '../lib/supabase';
 import { styles } from '../styles/styles';
+import logo from '../assets/logo.png';
+import { buscarDeportistaPorDocumento } from '../services/deportistasService';
+import { supabase } from '../lib/supabase';
 
 export default function ActivarCuenta({ setPantalla }) {
 
@@ -16,12 +18,8 @@ export default function ActivarCuenta({ setPantalla }) {
 
     setLoading(true);
 
-    const { data, error } = await supabase
-      .from('deportistas')
-      .select('*')
-      .eq('deportista_documento', documento)
-      .single();
-
+    const { data, error } =
+    await buscarDeportistaPorDocumento(documento);
     setLoading(false);
 
     if (error || !data) {
