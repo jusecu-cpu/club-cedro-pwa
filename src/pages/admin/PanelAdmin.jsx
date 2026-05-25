@@ -2,6 +2,10 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { styles } from '../../styles/styles';
 import logo from '../../assets/logo.png';
+import AdminDeportistas from './AdminDeportistas';
+import AdminEquipos from './AdminEquipos';
+import AdminAgenda from './AdminAgenda';
+import AdminCarnets from './AdminCarnets';
 
 export default function PanelAdmin({ setPantalla, setUsuario, setPerfil }) {
     const [menuAdmin, setMenuAdmin] = useState('dashboard');
@@ -92,10 +96,12 @@ export default function PanelAdmin({ setPantalla, setUsuario, setPerfil }) {
             mapa[key] = (mapa[key] || 0) + 1;
         });
 
-        return Object.entries(mapa).map(([nombre, total]) => ({
-            nombre,
-            total,
-        }));
+        return Object.entries(mapa)
+  .map(([nombre, total]) => ({
+    nombre,
+    total,
+  }))
+  .sort((a, b) => b.total - a.total);
     }
 
     async function cerrarSesion() {
@@ -153,8 +159,23 @@ export default function PanelAdmin({ setPantalla, setUsuario, setPerfil }) {
                             setMenuAbierto(false);
                         }}
                     >
-                        ✅ Aprobaciones
+                       ✅ Aprobaciones
                     </button>
+
+                    <button
+                    style={
+                        menuAdmin === 'deportistas'
+                        ? styles.sidebarBtnActive
+                        : styles.sidebarBtn
+                    }
+                    onClick={() => {
+                        setMenuAdmin('deportistas');
+                        setMenuAbierto(false);
+                    }}
+                    >
+                    👥 Deportistas
+                    </button>                
+                       
 
                     <button
                         style={
@@ -167,6 +188,7 @@ export default function PanelAdmin({ setPantalla, setUsuario, setPerfil }) {
                             setMenuAbierto(false);
                         }}
                     >
+                        
                         👤 Entrenadores
                     </button>
 
@@ -247,15 +269,22 @@ export default function PanelAdmin({ setPantalla, setUsuario, setPerfil }) {
             <section style={styles.adminBody}>
                 {menuAdmin === 'dashboard' && (
                     <AdminDashboard
-                        resumen={resumen}
-                        porSede={porSede}
-                        porEntrenador={porEntrenador}
-                        porCategoria={porCategoria}
-                    />
+                    resumen={resumen}
+                    porSede={porSede}
+                    porEntrenador={porEntrenador}
+                    porCategoria={porCategoria}
+                    setMenuAdmin={setMenuAdmin}
+                  />
+                    
+                    
+                )}
+
+                {menuAdmin === 'deportistas' && (
+                <AdminDeportistas />
                 )}
 
                 {menuAdmin === 'aprobaciones' && <AdminAprobaciones />}
-
+                               
                 {menuAdmin === 'entrenadores' && (
                     <AdminEntrenadores
                         entrenadores={entrenadores}
@@ -263,15 +292,22 @@ export default function PanelAdmin({ setPantalla, setUsuario, setPerfil }) {
                     />
                 )}
 
+
                 {menuAdmin === 'categorias' && (
                     <AdminCategorias categorias={categorias} recargar={cargarAdmin} />
                 )}
-
-                {menuAdmin === 'equipos' && <div>Equipos</div>}
-
-                {menuAdmin === 'agenda' && <div>Agenda</div>}
-
+                
+                {menuAdmin === 'equipos' && <AdminEquipos />}   
+                {menuAdmin === 'agenda' && <AdminAgenda />}
                 {menuAdmin === 'carnets' && <AdminCarnets />}
+                {menuAdmin === 'sedes' && (
+                <>
+                    <h1 style={styles.adminTitle}>Sedes</h1>
+                    <section style={styles.adminPanel}>
+                    <p>Módulo sedes en construcción.</p>
+                    </section>
+                </>
+                )} 
 
                 {menuAdmin === 'docs' && <AdminDocs />}
             </section>
@@ -279,17 +315,47 @@ export default function PanelAdmin({ setPantalla, setUsuario, setPerfil }) {
     );
 }
 
-function AdminDashboard({ resumen, porSede, porEntrenador, porCategoria }) {
+function AdminDashboard({
+    resumen,
+    porSede,
+    porEntrenador,
+    porCategoria,
+    setMenuAdmin,
+  }) {
     return (
         <>
             <h1 style={styles.adminTitle}>Dashboard</h1>
 
             <section style={styles.adminCardsGrid}>
-                <AdminCard titulo="Sedes" valor={resumen.sedes} />
-                <AdminCard titulo="Entrenadores" valor={resumen.entrenadores} />
-                <AdminCard titulo="Deportistas" valor={resumen.deportistas} />
-                <AdminCard titulo="Categorías" valor={resumen.categorias} />
-                <AdminCard titulo="Solicitudes" valor={resumen.solicitudes} />
+            <AdminCard
+            titulo="Sedes"
+            valor={resumen.sedes}
+            onClick={() => setMenuAdmin('sedes')}
+            />
+
+            <AdminCard
+            titulo="Entrenadores"
+            valor={resumen.entrenadores}
+            onClick={() => setMenuAdmin('entrenadores')}
+            />
+
+            <AdminCard
+            titulo="Deportistas"
+            valor={resumen.deportistas}
+            onClick={() => setMenuAdmin('deportistas')}
+            />
+
+            <AdminCard
+            titulo="Categorías"
+            valor={resumen.categorias}
+            onClick={() => setMenuAdmin('categorias')}
+            />
+
+            <AdminCard
+            titulo="Solicitudes"
+            valor={resumen.solicitudes}
+            onClick={() => setMenuAdmin('aprobaciones')}
+            />
             </section>
 
             <AdminTabla titulo="Deportistas por sede" data={porSede} />
@@ -299,14 +365,20 @@ function AdminDashboard({ resumen, porSede, porEntrenador, porCategoria }) {
     );
 }
 
-function AdminCard({ titulo, valor }) {
+function AdminCard({ titulo, valor, onClick }) {
     return (
-        <div style={styles.adminCard}>
-            <p>{titulo}</p>
-            <h2>{valor}</h2>
-        </div>
+      <div
+        style={{
+          ...styles.adminCard,
+          cursor: onClick ? 'pointer' : 'default',
+        }}
+        onClick={onClick}
+      >
+        <p>{titulo}</p>
+        <h2>{valor}</h2>
+      </div>
     );
-}
+  }
 
 function AdminTabla({ titulo, data }) {
     return (
@@ -869,38 +941,108 @@ function AdminCategorias({ categorias, recargar }) {
     );
 }
 
-function AdminCarnets() {
-    return (
-        <>
-            <h1 style={styles.adminTitle}>Carnets</h1>
-            <section style={styles.adminPanel}>
-                <p>Próximo paso: ver carnets de deportistas y entrenadores.</p>
-            </section>
-        </>
-    );
-}
-
 function AdminDocs() {
+    const documentos = [
+      {
+        icono: '🛡️',
+        titulo: 'Resumen protección deportiva',
+        descripcion: 'Resumen general del programa para deportistas.',
+        archivo: '/docs/resumen-proteccion.pdf',
+      },
+      {
+        icono: '📘',
+        titulo: 'Condicionado de asistencia',
+        descripcion: 'Detalle de condiciones, límites y exclusiones.',
+        archivo: '/docs/condicionado-asistencia.pdf',
+      },
+      {
+        icono: '📄',
+        titulo: 'Slip póliza de seguros',
+        descripcion: 'Coberturas principales de la póliza.',
+        archivo: '/docs/slip-poliza.pdf',
+      },
+    ];
+  
     return (
-        <>
-            <h1 style={styles.adminTitle}>Programa de seguros / Docs</h1>
-
-            <section style={styles.alertaProteccion}>
-                <div style={styles.portalIcon}>A</div>
+      <>
+        <h1 style={{ ...styles.adminTitle, fontSize: 26, lineHeight: 1.05 }}>
+          Documentos
+        </h1>
+  
+        <section
+          style={{
+            ...styles.alertaProteccion,
+            padding: 18,
+            borderRadius: 18,
+            alignItems: 'center',
+          }}
+        >
+          <div style={{ ...styles.portalIcon, fontSize: 24 }}>🛡️</div>
+  
+          <div>
+            <h3 style={{ margin: 0, fontSize: 17 }}>
+              Programa Protección Deportiva
+            </h3>
+            <p style={{ margin: '6px 0', fontSize: 13 }}>
+              Número de póliza 1000092     
+              Línea de atención: 601-744-3718
+            </p>
+            <small>Solicitar autorización antes de acudir.</small>
+          </div>
+        </section>
+  
+        <section style={{ display: 'grid', gap: 14 }}>
+          {documentos.map((doc) => (
+            <article
+              key={doc.titulo}
+              style={{
+                background: '#fff',
+                borderRadius: 18,
+                padding: 18,
+                boxShadow: '0 8px 20px rgba(0,0,0,0.08)',
+                display: 'flex',
+                gap: 14,
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              }}
+            >
+              <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                <div style={{ fontSize: 26 }}>{doc.icono}</div>
+  
                 <div>
-                    <h3>Programa de Protección Deportiva</h3>
-                    <p>Compañía de seguros 601-744-3718</p>
-                    <small>Llamar primero para asignar centro asistencial</small>
+                  <h3 style={{ margin: 0, fontSize: 16 }}>
+                    {doc.titulo}
+                  </h3>
+                  <p style={{ margin: '6px 0 0', fontSize: 13 }}>
+                    {doc.descripcion}
+                  </p>
                 </div>
-            </section>
-
-            <DocumentoCard
-                titulo="Resumen del programa Protección deportiva"
-                texto="Resumen general del programa de protección para deportistas."
-            />
-        </>
+              </div>
+  
+              <a
+                href={doc.archivo}
+                target="_blank"
+                rel="noreferrer"
+                style={{
+                  background: '#253a9b',
+                  color: '#fff',
+                  padding: '8px 12px',
+                  borderRadius: 10,
+                  textDecoration: 'none',
+                  fontSize: 13,
+                  fontWeight: 700,
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                Ver
+              </a>
+            </article>
+          ))}
+        </section>
+      </>
     );
-}
+  }
+
 
 function DocumentoCard({ titulo, texto }) {
     return (

@@ -1,3 +1,7 @@
+import { useEffect, useState } from 'react';
+import { supabase } from '../../lib/supabase';
+import { styles } from '../../styles/styles';
+
 export default function AdminEquipos() {
     const [equipos, setEquipos] = useState([]);
     const [sedes, setSedes] = useState([]);
