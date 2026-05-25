@@ -460,23 +460,64 @@ export default function PanelEntrenador({
       alert('Selecciona un deportista.');
       return;
     }
-
-    const { error } = await supabase.from('equipo_deportista').insert([
-      {
-        equipo_id: equipoSeleccionado.id,
-        deportista_id: deportistaSeleccionado,
-        estado: 'activo',
-      },
-    ]);
-
-    if (error) {
-      console.error(error);
-      alert('No se pudo asignar. Puede que ya esté en ese equipo.');
+  
+    // 1. Validar si ya está activo en cualquier equipo
+    const { data: asignacionActiva, error: errorConsulta } = await supabase
+      .from('equipo_deportista')
+      .select('*')
+      .eq('deportista_id', deportistaSeleccionado)
+      .eq('estado', 'activo')
+      .maybeSingle();
+  
+    if (errorConsulta) {
+      console.error(errorConsulta);
+      alert('No se pudo validar la asignación.');
       return;
     }
-
+  
+    if (asignacionActiva) {
+      alert('Este deportista ya está asignado a un equipo activo.');
+      return;
+    }
+  
+    // 2. Revisar si ya existe relación inactiva con este equipo
+    const { data: relacionExistente } = await supabase
+      .from('equipo_deportista')
+      .select('*')
+      .eq('equipo_id', equipoSeleccionado.id)
+      .eq('deportista_id', deportistaSeleccionado)
+      .maybeSingle();
+  
+    if (relacionExistente) {
+      const { error } = await supabase
+        .from('equipo_deportista')
+        .update({ estado: 'activo' })
+        .eq('id', relacionExistente.id);
+  
+      if (error) {
+        console.error(error);
+        alert('No se pudo reactivar el deportista en el equipo.');
+        return;
+      }
+    } else {
+      const { error } = await supabase.from('equipo_deportista').insert([
+        {
+          equipo_id: equipoSeleccionado.id,
+          deportista_id: deportistaSeleccionado,
+          estado: 'activo',
+        },
+      ]);
+  
+      if (error) {
+        console.error(error);
+        alert(error.message || 'No se pudo asignar.');
+        return;
+      }
+    }
+  
     setDeportistaSeleccionado('');
     cargarEquipoDetalle(equipoSeleccionado);
+    cargarEntrenador();
   }
 
   async function quitarDeportista(relacionId) {
@@ -508,6 +549,23 @@ export default function PanelEntrenador({
     return !asignado;
   });
   
+  const eventosProximos = eventos
+  .filter((ev) => new Date(`${ev.fecha}T${ev.hora_fin || '23:59'}`) >= new Date())
+  .sort(
+    (a, b) =>
+      new Date(`${a.fecha}T${a.hora_inicio || '00:00'}`) -
+      new Date(`${b.fecha}T${b.hora_inicio || '00:00'}`)
+  );
+
+const eventosCumplidos = eventos
+  .filter((ev) => new Date(`${ev.fecha}T${ev.hora_fin || '23:59'}`) < new Date())
+  .sort(
+    (a, b) =>
+      new Date(`${b.fecha}T${b.hora_inicio || '00:00'}`) -
+      new Date(`${a.fecha}T${a.hora_inicio || '00:00'}`)
+  );
+
+
   if (!usuario) {
     return (
       <main style={styles.adminPage}>
@@ -585,8 +643,7 @@ export default function PanelEntrenador({
             >
               <option value="">Selecciona deportista</option>
 
-              {deportistas.map((dep) => (
-                <option key={dep.id} value={dep.id}>
+              {deportistasSinEquipo.map((dep) => (                <option key={dep.id} value={dep.id}>
                   {dep.deportista_nombre} - {dep.deportista_documento}
                 </option>
               ))}
@@ -756,6 +813,21 @@ export default function PanelEntrenador({
                 <p>Eventos</p>
                 <h2>{eventos.length}</h2>
               </button>
+             
+              <button
+                style={
+                  menu === 'docs'
+                    ? styles.sidebarBtnActive
+                    : styles.sidebarBtn
+                }
+                onClick={() => {
+                  setMenu('docs');
+                  setMenuAbierto(false);
+                }}
+              >
+                📄 Docs
+              </button>
+
 
               <button
                 style={styles.adminCardButton}
@@ -1058,171 +1130,130 @@ export default function PanelEntrenador({
               </section>
             )}
 
-            <section style={styles.adminPanel}>
-              {eventos.length === 0 && <p>No tienes eventos programados.</p>}
+        <section style={styles.adminPanel}>
+          {eventos.length === 0 && <p>No tienes eventos programados.</p>}
 
-              {eventos.map((ev) => (
-                <div key={ev.id} style={styles.agendaCard}>
-                  <div style={styles.agendaFecha}>
-                    <strong style={{ fontSize: '22px' }}>
-                      {new Date(ev.fecha).getDate()}
-                    </strong>
+          <h2>Próximos eventos</h2>
 
-                    <span>
-                      {new Date(ev.fecha).toLocaleDateString('es-CO', {
-                        month: 'short',
-                      })}
-                    </span>
-                  </div>
+          {eventosProximos.length === 0 && <p>No tienes próximos eventos.</p>}
 
-                  <div style={styles.agendaContenido}>
-                    <small style={styles.agendaTipo}>{ev.tipo_evento}</small>
-                    <h3>{ev.titulo}</h3>
-                    <p>{ev.equipo?.nombre || 'Sin equipo'}</p>
-                    <small>
-                      {ev.hora_inicio} - {ev.hora_fin}
-                    </small>
-                  </div>
+          {eventosProximos.map((ev) => (
+            <EventoEntrenadorCard
+              key={ev.id}
+              ev={ev}
+              abrirAsistencia={abrirAsistencia}
+              setEventoEditando={setEventoEditando}
+              setEventoCancelando={setEventoCancelando}
+              setMotivoCancelacion={setMotivoCancelacion}
+            />
+          ))}
 
-                  <div style={styles.eventoAcciones}>
-                    <button
-                      style={styles.botonMini}
-                      onClick={() => {
-                        const ahora = new Date();
-                        const inicioEvento = new Date(
-                          `${ev.fecha}T${ev.hora_inicio}`
-                        );
+          <h2 style={{ marginTop: 30 }}>Eventos cumplidos</h2>
 
-                        if (ahora < inicioEvento) {
-                          alert(
-                            'La asistencia solo se puede diligenciar cuando el evento ya haya iniciado.'
-                          );
-                          return;
-                        }
+          {eventosCumplidos.length === 0 && <p>No hay eventos cumplidos.</p>}
 
-                        abrirAsistencia(ev);
-                      }}
-                    >
-                      Asistencia
+          {eventosCumplidos.map((ev) => (
+            <EventoEntrenadorCard
+              key={ev.id}
+              ev={ev}
+              abrirAsistencia={abrirAsistencia}
+              setEventoEditando={setEventoEditando}
+              setEventoCancelando={setEventoCancelando}
+              setMotivoCancelacion={setMotivoCancelacion}
+              cumplido
+            />
+          ))}
+        </section>
+           </>
+                )}
+
+                {menu === 'docs' && <AdminDocs />}
+                {menu === 'carnet' && (
+                  <>
+                    <h1 style={styles.adminTitle}>Carnet</h1>
+                    <section style={styles.adminPanel}>
+                      <h2>{entrenador.nombres_completos}</h2>
+                      <p>{entrenador.correo_electronico}</p>
+                      <small>Entrenador</small>
+                    </section>
+                  </>
+                )}
+
+                
+                {eventoEditando && (
+                  <section style={styles.modalInterno}>
+                    <h2>Editar evento</h2>
+
+                    <input
+                      style={styles.input}
+                      value={eventoEditando.titulo}
+                      onChange={(e) =>
+                        setEventoEditando({
+                          ...eventoEditando,
+                          titulo: e.target.value,
+                        })
+                      }
+                      placeholder="Título"
+                    />
+
+                    <input
+                      type="date"
+                      style={styles.input}
+                      value={eventoEditando.fecha}
+                      onChange={(e) =>
+                        setEventoEditando({
+                          ...eventoEditando,
+                          fecha: e.target.value,
+                        })
+                      }
+                    />
+
+                    <input
+                      type="time"
+                      style={styles.input}
+                      value={eventoEditando.hora_inicio}
+                      onChange={(e) =>
+                        setEventoEditando({
+                          ...eventoEditando,
+                          hora_inicio: e.target.value,
+                        })
+                      }
+                    />
+
+                    <input
+                      type="time"
+                      style={styles.input}
+                      value={eventoEditando.hora_fin}
+                      onChange={(e) =>
+                        setEventoEditando({
+                          ...eventoEditando,
+                          hora_fin: e.target.value,
+                        })
+                      }
+                    />
+
+                    <textarea
+                      style={styles.input}
+                      value={eventoEditando.descripcion || ''}
+                      onChange={(e) =>
+                        setEventoEditando({
+                          ...eventoEditando,
+                          descripcion: e.target.value,
+                        })
+                      }
+                      placeholder="Descripción / cancha / novedad"
+                    />
+
+                    <button style={styles.boton} onClick={guardarEdicionEvento}>
+                      Guardar cambios
                     </button>
 
                     <button
-                      style={styles.botonMini}
-                      onClick={() => setEventoEditando(ev)}
+                      style={styles.botonCancelarFull}
+                      onClick={() => setEventoEditando(null)}
                     >
-                      Editar
+                      Cerrar
                     </button>
-
-                    <button
-                      style={styles.botonMiniDanger}
-                      onClick={() => {
-                        setEventoCancelando(ev);
-                        setMotivoCancelacion('');
-                      }}
-                    >
-                      Cancelar
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </section>
-          </>
-        )}
-
-        {menu === 'carnet' && (
-          <>
-            <h1 style={styles.adminTitle}>Carnet</h1>
-            <section style={styles.adminPanel}>
-              <h2>{entrenador.nombres_completos}</h2>
-              <p>{entrenador.correo_electronico}</p>
-              <small>Entrenador</small>
-            </section>
-          </>
-        )}
-
-        {menu === 'docs' && (
-          <>
-            <h1 style={styles.adminTitle}>Docs</h1>
-            <section style={styles.adminPanel}>
-              <p>Módulo de documentos pendiente.</p>
-            </section>
-          </>
-        )}
-
-        {eventoEditando && (
-          <section style={styles.modalInterno}>
-            <h2>Editar evento</h2>
-
-            <input
-              style={styles.input}
-              value={eventoEditando.titulo}
-              onChange={(e) =>
-                setEventoEditando({
-                  ...eventoEditando,
-                  titulo: e.target.value,
-                })
-              }
-              placeholder="Título"
-            />
-
-            <input
-              type="date"
-              style={styles.input}
-              value={eventoEditando.fecha}
-              onChange={(e) =>
-                setEventoEditando({
-                  ...eventoEditando,
-                  fecha: e.target.value,
-                })
-              }
-            />
-
-            <input
-              type="time"
-              style={styles.input}
-              value={eventoEditando.hora_inicio}
-              onChange={(e) =>
-                setEventoEditando({
-                  ...eventoEditando,
-                  hora_inicio: e.target.value,
-                })
-              }
-            />
-
-            <input
-              type="time"
-              style={styles.input}
-              value={eventoEditando.hora_fin}
-              onChange={(e) =>
-                setEventoEditando({
-                  ...eventoEditando,
-                  hora_fin: e.target.value,
-                })
-              }
-            />
-
-            <textarea
-              style={styles.input}
-              value={eventoEditando.descripcion || ''}
-              onChange={(e) =>
-                setEventoEditando({
-                  ...eventoEditando,
-                  descripcion: e.target.value,
-                })
-              }
-              placeholder="Descripción / cancha / novedad"
-            />
-
-            <button style={styles.boton} onClick={guardarEdicionEvento}>
-              Guardar cambios
-            </button>
-
-            <button
-              style={styles.botonCancelarFull}
-              onClick={() => setEventoEditando(null)}
-            >
-              Cerrar
-            </button>
           </section>
         )}
 
@@ -1321,5 +1352,68 @@ export default function PanelEntrenador({
         )}
       </section>
     </main>
+  );
+}
+
+function EventoEntrenadorCard({
+  ev,
+  abrirAsistencia,
+  setEventoEditando,
+  setEventoCancelando,
+  setMotivoCancelacion,
+  cumplido = false,
+}) {
+  return (
+    <div key={ev.id} style={styles.agendaCard}>
+      <div style={styles.agendaFecha}>
+        <strong style={{ fontSize: '22px' }}>
+          {new Date(ev.fecha).getDate()}
+        </strong>
+
+        <span>
+          {new Date(ev.fecha).toLocaleDateString('es-CO', {
+            month: 'short',
+          })}
+        </span>
+      </div>
+
+      <div style={styles.agendaContenido}>
+        <small style={styles.agendaTipo}>
+          {cumplido ? 'Cumplido' : ev.tipo_evento}
+        </small>
+
+        <h3>{ev.titulo}</h3>
+        <p>{ev.equipo?.nombre || 'Sin equipo'}</p>
+        <small>{ev.hora_inicio} - {ev.hora_fin}</small>
+      </div>
+
+      {!cumplido && (
+        <div style={styles.eventoAcciones}>
+          <button
+            style={styles.botonMini}
+            onClick={() => abrirAsistencia(ev)}
+          >
+            Asistencia
+          </button>
+
+          <button
+            style={styles.botonMini}
+            onClick={() => setEventoEditando(ev)}
+          >
+            Editar
+          </button>
+
+          <button
+            style={styles.botonMiniDanger}
+            onClick={() => {
+              setEventoCancelando(ev);
+              setMotivoCancelacion('');
+            }}
+          >
+            Cancelar
+          </button>
+        </div>
+      )}
+    </div>
   );
 }
