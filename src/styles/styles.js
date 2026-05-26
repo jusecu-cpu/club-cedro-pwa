@@ -1043,14 +1043,19 @@ export const styles = {
     },
   
     adminCardButton: {
-      background: 'white',
+      background: '#072c8f',
+      color: '#fff',
       border: 'none',
-      borderRadius: '14px',
-      padding: '16px',
-      boxShadow: '0 5px 14px rgba(0,0,0,0.08)',
-      textAlign: 'center',
+      borderRadius: 24,
+      padding: 24,
+      minHeight: 160,
+      display: 'flex',
+      flexDirection: 'column',
+      justifyContent: 'center',
+      alignItems: 'center',
+      gap: 10,
+      boxShadow: '0 10px 25px rgba(0,0,0,0.18)',
       cursor: 'pointer',
-      color: '#1d1d45',
     },
   
     adminGrid2: {

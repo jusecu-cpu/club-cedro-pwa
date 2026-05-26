@@ -20,10 +20,9 @@ export default function PanelEntrenador({
   const [deportistasEquipo, setDeportistasEquipo] = useState([]);
   const [deportistaSeleccionado, setDeportistaSeleccionado] = useState('');
   const [cargando, setCargando] = useState(true);
-
+  const [deportistasAsignadosIds, setDeportistasAsignadosIds] = useState([]);
   const [mostrarCrearEquipo, setMostrarCrearEquipo] = useState(false);
   const [mostrarCrearEvento, setMostrarCrearEvento] = useState(false);
-
   const [eventoEditando, setEventoEditando] = useState(null);
   const [eventoCancelando, setEventoCancelando] = useState(null);
   const [eventoAsistencia, setEventoAsistencia] = useState(null);
@@ -114,11 +113,11 @@ export default function PanelEntrenador({
       eventosRes,
       sedesRes,
       categoriasRes,
+      asignacionesRes,
     ] = await Promise.all([
       supabase
         .from('equipos')
-        .select(
-          `
+        .select(`
           id,
           nombre,
           estado,
@@ -126,15 +125,13 @@ export default function PanelEntrenador({
           categoria_id,
           sede:sedes(nombre_corto),
           categoria:categorias(categoria)
-        `
-        )
+        `)
         .eq('entrenador_id', entrenadorData.id)
         .order('nombre'),
-
+    
       supabase
         .from('deportistas')
-        .select(
-          `
+        .select(`
           id,
           deportista_nombre,
           deportista_documento,
@@ -142,15 +139,13 @@ export default function PanelEntrenador({
           estado,
           sede:sedes(nombre_corto),
           categoria:categorias(categoria)
-        `
-        )
+        `)
         .eq('entrenador_id', entrenadorData.id)
         .order('deportista_nombre'),
-
+    
       supabase
         .from('agenda_eventos')
-        .select(
-          `
+        .select(`
           id,
           titulo,
           tipo_evento,
@@ -165,18 +160,22 @@ export default function PanelEntrenador({
           sede_id,
           equipo:equipos(nombre),
           sede:sedes(nombre_corto)
-        `
-        )
+        `)
         .eq('entrenador_id', entrenadorData.id)
         .order('fecha', { ascending: true }),
-
+    
       supabase.from('sedes').select('id, nombre_corto').order('nombre_corto'),
-
+    
       supabase
         .from('categorias')
         .select('id, categoria')
         .eq('estado', 'Activo')
         .order('categoria'),
+    
+      supabase
+        .from('equipo_deportista')
+        .select('deportista_id')
+        .eq('estado', 'activo'),
     ]);
 
     setEquipos(equiposRes.data || []);
@@ -184,6 +183,9 @@ export default function PanelEntrenador({
     setEventos(eventosRes.data || []);
     setSedesEntrenador(sedesRes.data || []);
     setCategoriasEntrenador(categoriasRes.data || []);
+    setDeportistasAsignadosIds(
+      (asignacionesRes.data || []).map((item) => item.deportista_id)
+    );
     setCargando(false);
   }
 
@@ -542,12 +544,10 @@ export default function PanelEntrenador({
     setPantalla('login');
   }
 
-  const deportistasSinEquipo = deportistas.filter((dep) => {
-    const asignado = deportistasEquipo.some(
-      (item) => item.deportista?.id === dep.id
-    );
-    return !asignado;
-  });
+  const deportistasSinEquipo = deportistas.filter(
+    (dep) => !deportistasAsignadosIds.includes(dep.id)
+  );
+  
   
   const eventosProximos = eventos
   .filter((ev) => new Date(`${ev.fecha}T${ev.hora_fin || '23:59'}`) >= new Date())
@@ -758,6 +758,7 @@ const eventosCumplidos = eventos
               setMenu('carnet');
               setMenuAbierto(false);
             }}
+            
           >
             🪪 Carnet
           </button>
@@ -783,11 +784,82 @@ const eventosCumplidos = eventos
           <>
             <h1 style={styles.adminTitle}>Entrenador</h1>
 
-            <section style={styles.adminPanel}>
-              <h2>{entrenador.nombres_completos}</h2>
-              <p>{entrenador.correo_electronico}</p>
-              <small>Estado: {entrenador.estado}</small>
-            </section>
+            <section
+          style={{
+            background: '#072c8f',
+            borderRadius: 28,
+            padding: 28,
+            color: '#fff',
+            boxShadow: '0 12px 30px rgba(0,0,0,0.18)',
+            marginBottom: 24,
+            textAlign: 'center',
+          }}
+        >
+          {entrenador.foto_url ? (
+            <img
+              src={entrenador.foto_url}
+              alt="Entrenador"
+              style={{
+                width: 95,
+                height: 95,
+                borderRadius: '50%',
+                objectFit: 'cover',
+                border: '4px solid rgba(255,255,255,0.2)',
+                marginBottom: 16,
+              }}
+            />
+          ) : (
+            <div
+              style={{
+                width: 95,
+                height: 95,
+                borderRadius: '50%',
+                background: 'rgba(255,255,255,0.15)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: 40,
+                margin: '0 auto 16px',
+              }}
+            >
+              👤
+            </div>
+          )}
+
+          <h2
+            style={{
+              margin: 0,
+              fontSize: 24,
+              fontWeight: 800,
+              color: '#fff',
+            }}
+          >
+            {entrenador.nombres_completos}
+          </h2>
+
+          <p
+            style={{
+              marginTop: 8,
+              marginBottom: 6,
+              color: 'rgba(255,255,255,0.85)',
+              fontSize: 15,
+            }}
+          >
+            {entrenador.correo_electronico}
+          </p>
+
+          <small
+            style={{
+              background: 'rgba(255,255,255,0.15)',
+              padding: '6px 12px',
+              borderRadius: 30,
+              fontSize: 12,
+              fontWeight: 700,
+            }}
+          >
+            Estado: {entrenador.estado}
+          </small>
+</section>
 
             <section style={styles.adminCardsGrid}>
               <button
@@ -1167,17 +1239,13 @@ const eventosCumplidos = eventos
            </>
                 )}
 
-                {menu === 'docs' && <AdminDocs />}
-                {menu === 'carnet' && (
-                  <>
-                    <h1 style={styles.adminTitle}>Carnet</h1>
-                    <section style={styles.adminPanel}>
-                      <h2>{entrenador.nombres_completos}</h2>
-                      <p>{entrenador.correo_electronico}</p>
-                      <small>Entrenador</small>
-                    </section>
-                  </>
-                )}
+          {menu === 'docs' && <EntrenadorDocs />}
+          {menu === 'carnet' && (
+            <EntrenadorCarnet
+              entrenador={entrenador}
+              recargar={cargarEntrenador}
+            />
+          )}
 
                 
                 {eventoEditando && (
@@ -1415,5 +1483,267 @@ function EventoEntrenadorCard({
         </div>
       )}
     </div>
+  );
+}
+
+function EntrenadorDocs() {
+  const documentos = [
+    {
+      icono: '🛡️',
+      titulo: 'Resumen protección deportiva',
+      descripcion: 'Resumen general del programa para deportistas.',
+      archivo: '/docs/resumen-proteccion.pdf',
+    },
+    {
+      icono: '📘',
+      titulo: 'Condicionado de asistencia',
+      descripcion: 'Detalle de condiciones, límites y exclusiones.',
+      archivo: '/docs/condicionado-asistencia.pdf',
+    },
+    {
+      icono: '📄',
+      titulo: 'Slip póliza de seguros',
+      descripcion: 'Coberturas principales de la póliza.',
+      archivo: '/docs/slip-poliza.pdf',
+    },
+  ];
+
+  return (
+    <>
+      <h1 style={{ ...styles.adminTitle, fontSize: 26 }}>
+        Documentos
+      </h1>
+
+      <section style={{ ...styles.alertaProteccion, padding: 18 }}>
+        <div style={{ ...styles.portalIcon, fontSize: 24 }}>🛡️</div>
+        <div>
+          <h3 style={{ margin: 0, fontSize: 17 }}>
+            Programa Protección Deportiva
+          </h3>
+          <p style={{ margin: '6px 0', fontSize: 13 }}>
+            Número de póliza 1000092<br />
+            Línea de atención: 601-744-3718
+          </p>
+          <small>Solicitar autorización antes de acudir.</small>
+        </div>
+      </section>
+
+      <section style={{ display: 'grid', gap: 14 }}>
+        {documentos.map((doc) => (
+          <article
+            key={doc.titulo}
+            style={{
+              background: '#fff',
+              borderRadius: 18,
+              padding: 18,
+              boxShadow: '0 8px 20px rgba(0,0,0,0.08)',
+              display: 'flex',
+              gap: 14,
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            }}
+          >
+            <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+              <div style={{ fontSize: 26 }}>{doc.icono}</div>
+              <div>
+                <h3 style={{ margin: 0, fontSize: 16 }}>{doc.titulo}</h3>
+                <p style={{ margin: '6px 0 0', fontSize: 13 }}>
+                  {doc.descripcion}
+                </p>
+              </div>
+            </div>
+
+            <a
+              href={doc.archivo}
+              target="_blank"
+              rel="noreferrer"
+              style={{
+                background: '#253a9b',
+                color: '#fff',
+                padding: '8px 12px',
+                borderRadius: 10,
+                textDecoration: 'none',
+                fontSize: 13,
+                fontWeight: 700,
+              }}
+            >
+              Ver
+            </a>
+          </article>
+        ))}
+      </section>
+    </>
+  );
+}
+
+function EntrenadorCarnet({ entrenador, recargar }) {
+  const [editando, setEditando] = useState(false);
+  const [form, setForm] = useState({
+    nombres_completos: entrenador?.nombres_completos || '',
+    documento_identidad: entrenador?.documento_identidad || '',
+    celular: entrenador?.celular || '',
+    correo_electronico: entrenador?.correo_electronico || '',
+    eps: entrenador?.eps || '',
+    foto_url: entrenador?.foto_url || '',
+  });
+
+  async function guardarDatos() {
+    const { error } = await supabase
+      .from('entrenadores')
+      .update({
+        nombres_completos: form.nombres_completos,
+        documento_identidad: form.documento_identidad,
+        celular: form.celular,
+        correo_electronico: form.correo_electronico,
+        eps: form.eps,
+        foto_url: form.foto_url,
+      })
+      .eq('id', entrenador.id);
+
+    if (error) {
+      console.error(error);
+      alert('No se pudieron actualizar los datos.');
+      return;
+    }
+
+    alert('Datos actualizados correctamente.');
+    setEditando(false);
+    recargar();
+  }
+
+  return (
+    <>
+      <h1 style={{ ...styles.adminTitle, fontSize: 26 }}>
+        Mi carnet
+      </h1>
+
+      <section
+        style={{
+          background: '#fff',
+          borderRadius: 24,
+          padding: 24,
+          maxWidth: 380,
+          margin: '0 auto 20px',
+          boxShadow: '0 10px 30px rgba(0,0,0,0.12)',
+          textAlign: 'center',
+        }}
+      >
+        <img
+          src={logo}
+          alt="Club Cedro"
+          style={{ width: 110, marginBottom: 16 }}
+        />
+
+        {form.foto_url ? (
+          <img
+            src={form.foto_url}
+            alt="Foto entrenador"
+            style={{
+              width: 120,
+              height: 120,
+              borderRadius: '50%',
+              objectFit: 'cover',
+              marginBottom: 16,
+            }}
+          />
+        ) : (
+          <div
+            style={{
+              width: 120,
+              height: 120,
+              borderRadius: '50%',
+              background: '#f0f0f0',
+              margin: '0 auto 16px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: 42,
+              color: '#999',
+            }}
+          >
+            👤
+          </div>
+        )}
+
+        <h2>{form.nombres_completos || 'Entrenador'}</h2>
+
+        <p><strong>Documento:</strong> {form.documento_identidad || '-'}</p>
+        <p><strong>Celular:</strong> {form.celular || '-'}</p>
+        <p><strong>Correo:</strong> {form.correo_electronico || '-'}</p>
+        <p><strong>EPS:</strong> {form.eps || '-'}</p>
+        <small>Entrenador Club Cedro</small>
+      </section>
+
+      <section style={styles.adminPanel}>
+        <button
+          style={styles.boton}
+          onClick={() => setEditando(!editando)}
+        >
+          {editando ? 'Cerrar edición' : 'Actualizar mis datos'}
+        </button>
+
+        {editando && (
+          <>
+            <input
+              style={styles.input}
+              placeholder="Foto URL"
+              value={form.foto_url}
+              onChange={(e) =>
+                setForm({ ...form, foto_url: e.target.value })
+              }
+            />
+
+            <input
+              style={styles.input}
+              placeholder="Nombres completos"
+              value={form.nombres_completos}
+              onChange={(e) =>
+                setForm({ ...form, nombres_completos: e.target.value })
+              }
+            />
+
+            <input
+              style={styles.input}
+              placeholder="Documento identidad"
+              value={form.documento_identidad}
+              onChange={(e) =>
+                setForm({ ...form, documento_identidad: e.target.value })
+              }
+            />
+
+            <input
+              style={styles.input}
+              placeholder="Celular"
+              value={form.celular}
+              onChange={(e) =>
+                setForm({ ...form, celular: e.target.value })
+              }
+            />
+
+            <input
+              style={styles.input}
+              placeholder="Correo electrónico"
+              value={form.correo_electronico}
+              onChange={(e) =>
+                setForm({ ...form, correo_electronico: e.target.value })
+              }
+            />
+
+            <input
+              style={styles.input}
+              placeholder="EPS"
+              value={form.eps}
+              onChange={(e) =>
+                setForm({ ...form, eps: e.target.value })
+              }
+            />
+
+            <button style={styles.boton} onClick={guardarDatos}>
+              Guardar cambios
+            </button>
+          </>
+        )}
+      </section>
+    </>
   );
 }
