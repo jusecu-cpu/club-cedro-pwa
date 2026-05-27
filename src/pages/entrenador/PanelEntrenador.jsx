@@ -2,6 +2,9 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { styles } from '../../styles/styles';
 import logo from '../../assets/logo.png';
+import EntrenadorDocs from './EntrenadorDocs';
+import EntrenadorCarnet from './EntrenadorCarnet';
+import EntrenadorEquipos from './EntrenadorEquipos';
 
 export default function PanelEntrenador({
   usuario,
@@ -885,20 +888,14 @@ const eventosCumplidos = eventos
                 <p>Eventos</p>
                 <h2>{eventos.length}</h2>
               </button>
-             
+                        
               <button
-                style={
-                  menu === 'docs'
-                    ? styles.sidebarBtnActive
-                    : styles.sidebarBtn
-                }
-                onClick={() => {
-                  setMenu('docs');
-                  setMenuAbierto(false);
-                }}
-              >
-                📄 Docs
-              </button>
+              style={styles.adminCardButton}
+              onClick={() => setMenu('docs')}
+            >
+              <p>Docs</p>
+              <h2>3</h2>
+            </button>
 
 
               <button
@@ -938,104 +935,18 @@ const eventosCumplidos = eventos
         )}
 
         {menu === 'equipos' && (
-          <>
-            <div style={styles.adminHeaderInline}>
-              <h1 style={styles.adminTitle}>Mis equipos</h1>
-
-              <button
-                style={styles.adminPlusBtn}
-                onClick={() => setMostrarCrearEquipo(!mostrarCrearEquipo)}
-              >
-                {mostrarCrearEquipo ? '×' : '+'}
-              </button>
-            </div>
-
-            {mostrarCrearEquipo && (
-              <section style={styles.adminPanel}>
-                <h2>Crear equipo</h2>
-
-                <input
-                  style={styles.input}
-                  placeholder="Nombre del equipo"
-                  value={nuevoEquipoEntrenador.nombre}
-                  onChange={(e) =>
-                    setNuevoEquipoEntrenador({
-                      ...nuevoEquipoEntrenador,
-                      nombre: e.target.value,
-                    })
-                  }
-                />
-
-                <select
-                  style={styles.input}
-                  value={nuevoEquipoEntrenador.sede_id}
-                  onChange={(e) =>
-                    setNuevoEquipoEntrenador({
-                      ...nuevoEquipoEntrenador,
-                      sede_id: e.target.value,
-                    })
-                  }
-                >
-                  <option value="">Selecciona sede</option>
-
-                  {sedesEntrenador.map((sede) => (
-                    <option key={sede.id} value={sede.id}>
-                      {sede.nombre_corto}
-                    </option>
-                  ))}
-                </select>
-
-                <select
-                  style={styles.input}
-                  value={nuevoEquipoEntrenador.categoria_id}
-                  onChange={(e) =>
-                    setNuevoEquipoEntrenador({
-                      ...nuevoEquipoEntrenador,
-                      categoria_id: e.target.value,
-                    })
-                  }
-                >
-                  <option value="">Selecciona categoría</option>
-
-                  {categoriasEntrenador.map((cat) => (
-                    <option key={cat.id} value={cat.id}>
-                      {cat.categoria}
-                    </option>
-                  ))}
-                </select>
-
-                <button style={styles.boton} onClick={crearEquipoEntrenador}>
-                  Crear equipo
-                </button>
-              </section>
-            )}
-
-            <section style={styles.adminPanel}>
-              {equipos.length === 0 && <p>No tienes equipos asignados.</p>}
-
-              {equipos.map((equipo) => (
-                <div key={equipo.id} style={styles.adminListItem}>
-                  <div>
-                    <strong>{equipo.nombre}</strong>
-                    <p>
-                      {equipo.sede?.nombre_corto || 'Sin sede'} ·{' '}
-                      {equipo.categoria?.categoria || 'Sin categoría'}
-                    </p>
-                    <small>Estado: {equipo.estado}</small>
-                  </div>
-
-                  <button
-                    style={styles.adminSmallBtn}
-                    onClick={() => cargarEquipoDetalle(equipo)}
-                  >
-                    Ver
-                  </button>
-                </div>
-              ))}
-            </section>
-          </>
+          <EntrenadorEquipos
+            equipos={equipos}
+            mostrarCrearEquipo={mostrarCrearEquipo}
+            setMostrarCrearEquipo={setMostrarCrearEquipo}
+            nuevoEquipoEntrenador={nuevoEquipoEntrenador}
+            setNuevoEquipoEntrenador={setNuevoEquipoEntrenador}
+            sedesEntrenador={sedesEntrenador}
+            categoriasEntrenador={categoriasEntrenador}
+            crearEquipoEntrenador={crearEquipoEntrenador}
+            cargarEquipoDetalle={cargarEquipoDetalle}
+          />
         )}
-
         {menu === 'deportistas' && (
           <>
             <h1 style={styles.adminTitle}>Mis deportistas</h1>
@@ -1483,267 +1394,5 @@ function EventoEntrenadorCard({
         </div>
       )}
     </div>
-  );
-}
-
-function EntrenadorDocs() {
-  const documentos = [
-    {
-      icono: '🛡️',
-      titulo: 'Resumen protección deportiva',
-      descripcion: 'Resumen general del programa para deportistas.',
-      archivo: '/docs/resumen-proteccion.pdf',
-    },
-    {
-      icono: '📘',
-      titulo: 'Condicionado de asistencia',
-      descripcion: 'Detalle de condiciones, límites y exclusiones.',
-      archivo: '/docs/condicionado-asistencia.pdf',
-    },
-    {
-      icono: '📄',
-      titulo: 'Slip póliza de seguros',
-      descripcion: 'Coberturas principales de la póliza.',
-      archivo: '/docs/slip-poliza.pdf',
-    },
-  ];
-
-  return (
-    <>
-      <h1 style={{ ...styles.adminTitle, fontSize: 26 }}>
-        Documentos
-      </h1>
-
-      <section style={{ ...styles.alertaProteccion, padding: 18 }}>
-        <div style={{ ...styles.portalIcon, fontSize: 24 }}>🛡️</div>
-        <div>
-          <h3 style={{ margin: 0, fontSize: 17 }}>
-            Programa Protección Deportiva
-          </h3>
-          <p style={{ margin: '6px 0', fontSize: 13 }}>
-            Número de póliza 1000092<br />
-            Línea de atención: 601-744-3718
-          </p>
-          <small>Solicitar autorización antes de acudir.</small>
-        </div>
-      </section>
-
-      <section style={{ display: 'grid', gap: 14 }}>
-        {documentos.map((doc) => (
-          <article
-            key={doc.titulo}
-            style={{
-              background: '#fff',
-              borderRadius: 18,
-              padding: 18,
-              boxShadow: '0 8px 20px rgba(0,0,0,0.08)',
-              display: 'flex',
-              gap: 14,
-              alignItems: 'center',
-              justifyContent: 'space-between',
-            }}
-          >
-            <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-              <div style={{ fontSize: 26 }}>{doc.icono}</div>
-              <div>
-                <h3 style={{ margin: 0, fontSize: 16 }}>{doc.titulo}</h3>
-                <p style={{ margin: '6px 0 0', fontSize: 13 }}>
-                  {doc.descripcion}
-                </p>
-              </div>
-            </div>
-
-            <a
-              href={doc.archivo}
-              target="_blank"
-              rel="noreferrer"
-              style={{
-                background: '#253a9b',
-                color: '#fff',
-                padding: '8px 12px',
-                borderRadius: 10,
-                textDecoration: 'none',
-                fontSize: 13,
-                fontWeight: 700,
-              }}
-            >
-              Ver
-            </a>
-          </article>
-        ))}
-      </section>
-    </>
-  );
-}
-
-function EntrenadorCarnet({ entrenador, recargar }) {
-  const [editando, setEditando] = useState(false);
-  const [form, setForm] = useState({
-    nombres_completos: entrenador?.nombres_completos || '',
-    documento_identidad: entrenador?.documento_identidad || '',
-    celular: entrenador?.celular || '',
-    correo_electronico: entrenador?.correo_electronico || '',
-    eps: entrenador?.eps || '',
-    foto_url: entrenador?.foto_url || '',
-  });
-
-  async function guardarDatos() {
-    const { error } = await supabase
-      .from('entrenadores')
-      .update({
-        nombres_completos: form.nombres_completos,
-        documento_identidad: form.documento_identidad,
-        celular: form.celular,
-        correo_electronico: form.correo_electronico,
-        eps: form.eps,
-        foto_url: form.foto_url,
-      })
-      .eq('id', entrenador.id);
-
-    if (error) {
-      console.error(error);
-      alert('No se pudieron actualizar los datos.');
-      return;
-    }
-
-    alert('Datos actualizados correctamente.');
-    setEditando(false);
-    recargar();
-  }
-
-  return (
-    <>
-      <h1 style={{ ...styles.adminTitle, fontSize: 26 }}>
-        Mi carnet
-      </h1>
-
-      <section
-        style={{
-          background: '#fff',
-          borderRadius: 24,
-          padding: 24,
-          maxWidth: 380,
-          margin: '0 auto 20px',
-          boxShadow: '0 10px 30px rgba(0,0,0,0.12)',
-          textAlign: 'center',
-        }}
-      >
-        <img
-          src={logo}
-          alt="Club Cedro"
-          style={{ width: 110, marginBottom: 16 }}
-        />
-
-        {form.foto_url ? (
-          <img
-            src={form.foto_url}
-            alt="Foto entrenador"
-            style={{
-              width: 120,
-              height: 120,
-              borderRadius: '50%',
-              objectFit: 'cover',
-              marginBottom: 16,
-            }}
-          />
-        ) : (
-          <div
-            style={{
-              width: 120,
-              height: 120,
-              borderRadius: '50%',
-              background: '#f0f0f0',
-              margin: '0 auto 16px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: 42,
-              color: '#999',
-            }}
-          >
-            👤
-          </div>
-        )}
-
-        <h2>{form.nombres_completos || 'Entrenador'}</h2>
-
-        <p><strong>Documento:</strong> {form.documento_identidad || '-'}</p>
-        <p><strong>Celular:</strong> {form.celular || '-'}</p>
-        <p><strong>Correo:</strong> {form.correo_electronico || '-'}</p>
-        <p><strong>EPS:</strong> {form.eps || '-'}</p>
-        <small>Entrenador Club Cedro</small>
-      </section>
-
-      <section style={styles.adminPanel}>
-        <button
-          style={styles.boton}
-          onClick={() => setEditando(!editando)}
-        >
-          {editando ? 'Cerrar edición' : 'Actualizar mis datos'}
-        </button>
-
-        {editando && (
-          <>
-            <input
-              style={styles.input}
-              placeholder="Foto URL"
-              value={form.foto_url}
-              onChange={(e) =>
-                setForm({ ...form, foto_url: e.target.value })
-              }
-            />
-
-            <input
-              style={styles.input}
-              placeholder="Nombres completos"
-              value={form.nombres_completos}
-              onChange={(e) =>
-                setForm({ ...form, nombres_completos: e.target.value })
-              }
-            />
-
-            <input
-              style={styles.input}
-              placeholder="Documento identidad"
-              value={form.documento_identidad}
-              onChange={(e) =>
-                setForm({ ...form, documento_identidad: e.target.value })
-              }
-            />
-
-            <input
-              style={styles.input}
-              placeholder="Celular"
-              value={form.celular}
-              onChange={(e) =>
-                setForm({ ...form, celular: e.target.value })
-              }
-            />
-
-            <input
-              style={styles.input}
-              placeholder="Correo electrónico"
-              value={form.correo_electronico}
-              onChange={(e) =>
-                setForm({ ...form, correo_electronico: e.target.value })
-              }
-            />
-
-            <input
-              style={styles.input}
-              placeholder="EPS"
-              value={form.eps}
-              onChange={(e) =>
-                setForm({ ...form, eps: e.target.value })
-              }
-            />
-
-            <button style={styles.boton} onClick={guardarDatos}>
-              Guardar cambios
-            </button>
-          </>
-        )}
-      </section>
-    </>
   );
 }
