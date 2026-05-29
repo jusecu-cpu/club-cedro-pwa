@@ -5,6 +5,7 @@ import logo from '../../assets/logo.png';
 import EntrenadorDocs from './EntrenadorDocs';
 import EntrenadorCarnet from './EntrenadorCarnet';
 import EntrenadorEquipos from './EntrenadorEquipos';
+import EntrenadorDeportistas from './EntrenadorDeportistas';
 
 export default function PanelEntrenador({
   usuario,
@@ -133,16 +134,34 @@ export default function PanelEntrenador({
         .order('nombre'),
     
       supabase
-        .from('deportistas')
-        .select(`
-          id,
-          deportista_nombre,
-          deportista_documento,
-          foto_url,
+      .from('deportistas')
+      .select(`
+        id,
+        deportista_nombre,
+        deportista_documento,
+        fecha_nacimiento,
+        direccion_vivienda,
+        sexo,
+        colegio,
+        eps,
+        rh,
+        alergias,
+        contacto_emergencia,
+        telefono_emergencia,
+        talla_camisa,
+        talla_pantalon,
+        foto_url,
+        estado,
+        sede:sedes(nombre_corto),
+        categoria:categorias(categoria),
+        equipo_deportista(
           estado,
-          sede:sedes(nombre_corto),
-          categoria:categorias(categoria)
-        `)
+          equipo:equipos(
+            id,
+            nombre
+          )
+        )
+      `)
         .eq('entrenador_id', entrenadorData.id)
         .order('deportista_nombre'),
     
@@ -444,6 +463,7 @@ export default function PanelEntrenador({
           id,
           deportista_nombre,
           deportista_documento,
+          foto_url,
           categoria:categorias(categoria)
         )
       `
@@ -664,24 +684,60 @@ const eventosCumplidos = eventos
               <p>No hay deportistas asignados.</p>
             )}
 
-            {deportistasEquipo.map((item) => (
-              <div key={item.id} style={styles.adminListItem}>
-                <div>
-                  <strong>{item.deportista?.deportista_nombre}</strong>
-                  <p>{item.deportista?.categoria?.categoria || 'Sin categoría'}</p>
-                  <small>
-                    Documento: {item.deportista?.deportista_documento}
-                  </small>
-                </div>
+{deportistasEquipo.map((item) => (
+  <div key={item.id} style={styles.adminListItem}>
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 12,
+      }}
+    >
+      {item.deportista?.foto_url ? (
+        <img
+          src={item.deportista.foto_url}
+          alt={item.deportista.deportista_nombre}
+          style={{
+            width: 54,
+            height: 54,
+            borderRadius: '50%',
+            objectFit: 'cover',
+          }}
+        />
+      ) : (
+        <div
+          style={{
+            width: 54,
+            height: 54,
+            borderRadius: '50%',
+            background: '#072c8f',
+            color: '#fff',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontWeight: 800,
+            fontSize: 20,
+          }}
+        >
+          {item.deportista?.deportista_nombre?.charAt(0) || 'D'}
+        </div>
+      )}
 
-                <button
-                  style={styles.adminSmallBtnDanger}
-                  onClick={() => quitarDeportista(item.id)}
-                >
-                  Retirar
-                </button>
-              </div>
-            ))}
+      <div>
+        <strong>{item.deportista?.deportista_nombre}</strong>
+        <p>{item.deportista?.categoria?.categoria || 'Sin categoría'}</p>
+        <small>Documento: {item.deportista?.deportista_documento}</small>
+      </div>
+    </div>
+
+    <button
+      style={styles.adminSmallBtnDanger}
+      onClick={() => quitarDeportista(item.id)}
+    >
+      Retirar
+    </button>
+  </div>
+))}
           </section>
         </section>
       </main>
@@ -948,30 +1004,13 @@ const eventosCumplidos = eventos
           />
         )}
         {menu === 'deportistas' && (
-          <>
-            <h1 style={styles.adminTitle}>Mis deportistas</h1>
+        <EntrenadorDeportistas
+          deportistas={deportistas}
+          recargar={cargarEntrenador}
+        />
+      )}
 
-            <section style={styles.adminPanel}>
-              {deportistas.length === 0 && (
-                <p>No tienes deportistas asignados.</p>
-              )}
-
-              {deportistas.map((dep) => (
-                <div key={dep.id} style={styles.adminListItem}>
-                  <div>
-                    <strong>{dep.deportista_nombre}</strong>
-                    <p>
-                      {dep.categoria?.categoria || 'Sin categoría'} ·{' '}
-                      {dep.sede?.nombre_corto || 'Sin sede'}
-                    </p>
-                    <small>Documento: {dep.deportista_documento}</small>
-                  </div>
-                </div>
-              ))}
-            </section>
-          </>
-        )}
-
+        
         {menu === 'agenda' && (
           <>
             <div style={styles.adminHeaderInline}>
