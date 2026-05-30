@@ -39,6 +39,35 @@ export default function EntrenadorCarnet({ entrenador, recargar }) {
     recargar();
   }
 
+  async function subirFoto(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+  
+    const extension = file.name.split('.').pop();
+    const fileName = `entrenadores/${entrenador.id}-${Date.now()}.${extension}`;
+  
+    const { error: uploadError } = await supabase.storage
+      .from('fotos')
+      .upload(fileName, file);
+  
+    if (uploadError) {
+      console.error(uploadError);
+      alert('No se pudo subir la foto.');
+      return;
+    }
+  
+    const { data } = supabase.storage
+      .from('fotos')
+      .getPublicUrl(fileName);
+  
+    setForm({
+      ...form,
+      foto_url: data.publicUrl,
+    });
+  
+    alert('Foto cargada. Ahora guarda los cambios.');
+  }
+
   return (
     <>
       <h1 style={{ ...styles.adminTitle, fontSize: 26 }}>Mi carnet</h1>
@@ -149,7 +178,14 @@ export default function EntrenadorCarnet({ entrenador, recargar }) {
             <button style={styles.boton} onClick={guardarDatos}>
               Guardar cambios
             </button>
+            <input
+              type="file"
+              accept="image/*"
+              style={styles.input}
+              onChange={subirFoto}
+            />
           </>
+          
         )}
       </section>
     </>

@@ -1492,7 +1492,8 @@ export const styles = {
       color: '#082567',
       fontWeight: '800',
     },
-    
+
+       
   };
   
   

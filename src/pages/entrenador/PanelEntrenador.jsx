@@ -31,9 +31,8 @@ export default function PanelEntrenador({
   const [eventoCancelando, setEventoCancelando] = useState(null);
   const [eventoAsistencia, setEventoAsistencia] = useState(null);
   const [listaAsistencia, setListaAsistencia] = useState([]);
-
+  const [asignacionesRapidas, setAsignacionesRapidas] = useState({});
   const [motivoCancelacion, setMotivoCancelacion] = useState('');
-
   const [nuevoEquipoEntrenador, setNuevoEquipoEntrenador] = useState({
     nombre: '',
     sede_id: '',
@@ -560,6 +559,58 @@ export default function PanelEntrenador({
     cargarEquipoDetalle(equipoSeleccionado);
   }
 
+  async function asignarRapidoAEquipo(deportistaId) {
+    const equipoId = asignacionesRapidas[deportistaId];
+  
+    if (!equipoId) {
+      alert('Selecciona un equipo.');
+      return;
+    }
+  
+    const { data: relacionExistente } = await supabase
+      .from('equipo_deportista')
+      .select('*')
+      .eq('equipo_id', equipoId)
+      .eq('deportista_id', deportistaId)
+      .maybeSingle();
+  
+    if (relacionExistente) {
+      const { error } = await supabase
+        .from('equipo_deportista')
+        .update({ estado: 'activo' })
+        .eq('id', relacionExistente.id);
+  
+      if (error) {
+        console.error(error);
+        alert('No se pudo reactivar la deportista.');
+        return;
+      }
+    } else {
+      const { error } = await supabase.from('equipo_deportista').insert([
+        {
+          equipo_id: equipoId,
+          deportista_id: deportistaId,
+          estado: 'activo',
+        },
+      ]);
+  
+      if (error) {
+        console.error(error);
+        alert(error.message || 'No se pudo asignar.');
+        return;
+      }
+    }
+  
+    alert('Deportista asignada correctamente.');
+  
+    setAsignacionesRapidas({
+      ...asignacionesRapidas,
+      [deportistaId]: '',
+    });
+  
+    cargarEntrenador();
+  }
+
   async function cerrarSesion() {
     await supabase.auth.signOut();
     setUsuario(null);
@@ -965,30 +1016,100 @@ const eventosCumplidos = eventos
           </>
         )}
 
-        {menu === 'sinEquipo' && (
-          <>
-            <h1 style={styles.adminTitle}>Sin equipo</h1>
+{menu === 'sinEquipo' && (
+  <>
+    <h1 style={styles.adminTitle}>Sin equipo</h1>
 
-            <section style={styles.adminPanel}>
-              {deportistasSinEquipo.length === 0 && (
-                <p>Todos los deportistas tienen equipo asignado.</p>
-              )}
+    <section style={styles.adminPanel}>
+      {deportistasSinEquipo.length === 0 && (
+        <p>Todos los deportistas tienen equipo asignado.</p>
+      )}
 
-              {deportistasSinEquipo.map((dep) => (
-                <div key={dep.id} style={styles.adminListItem}>
-                  <div>
-                    <strong>{dep.deportista_nombre}</strong>
-                    <p>
-                      {dep.categoria?.categoria || 'Sin categoría'} ·{' '}
-                      {dep.sede?.nombre_corto || 'Sin sede'}
-                    </p>
-                    <small>Documento: {dep.deportista_documento}</small>
-                  </div>
-                </div>
-              ))}
-            </section>
-          </>
-        )}
+      {deportistasSinEquipo.map((dep) => (
+        <div
+          key={dep.id}
+          style={{
+            ...styles.adminListItem,
+            display: 'block',
+          }}
+        >
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 12,
+              marginBottom: 12,
+            }}
+          >
+            {dep.foto_url ? (
+              <img
+                src={dep.foto_url}
+                alt={dep.deportista_nombre}
+                style={{
+                  width: 52,
+                  height: 52,
+                  borderRadius: '50%',
+                  objectFit: 'cover',
+                }}
+              />
+            ) : (
+              <div
+                style={{
+                  width: 52,
+                  height: 52,
+                  borderRadius: '50%',
+                  background: '#072c8f',
+                  color: '#fff',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontWeight: 800,
+                }}
+              >
+                {dep.deportista_nombre?.charAt(0) || 'D'}
+              </div>
+            )}
+
+            <div>
+              <strong>{dep.deportista_nombre}</strong>
+              <p>
+                {dep.categoria?.categoria || 'Sin categoría'} ·{' '}
+                {dep.sede?.nombre_corto || 'Sin sede'}
+              </p>
+              <small>Documento: {dep.deportista_documento}</small>
+            </div>
+          </div>
+
+          <select
+            style={styles.input}
+            value={asignacionesRapidas[dep.id] || ''}
+            onChange={(e) =>
+              setAsignacionesRapidas({
+                ...asignacionesRapidas,
+                [dep.id]: e.target.value,
+              })
+            }
+          >
+            <option value="">Selecciona equipo</option>
+
+            {equipos.map((equipo) => (
+              <option key={equipo.id} value={equipo.id}>
+                {equipo.nombre}
+              </option>
+            ))}
+          </select>
+
+          <button
+            style={styles.boton}
+            onClick={() => asignarRapidoAEquipo(dep.id)}
+          >
+            Asignar a equipo
+          </button>
+        </div>
+      ))}
+    </section>
+  </>
+)}
 
         {menu === 'equipos' && (
           <EntrenadorEquipos
@@ -1189,8 +1310,8 @@ const eventosCumplidos = eventos
            </>
                 )}
 
-          {menu === 'docs' && <EntrenadorDocs />}
-          {menu === 'carnet' && (
+  {menu === 'docs' && <EntrenadorDocs deportistas={deportistas} />} 
+  {menu === 'carnet' && (
             <EntrenadorCarnet
               entrenador={entrenador}
               recargar={cargarEntrenador}
