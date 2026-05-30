@@ -6,6 +6,7 @@ import EntrenadorDocs from './EntrenadorDocs';
 import EntrenadorCarnet from './EntrenadorCarnet';
 import EntrenadorEquipos from './EntrenadorEquipos';
 import EntrenadorDeportistas from './EntrenadorDeportistas';
+import EntrenadorAsistencia from './EntrenadorAsistencia';
 
 export default function PanelEntrenador({
   usuario,
@@ -33,6 +34,7 @@ export default function PanelEntrenador({
   const [listaAsistencia, setListaAsistencia] = useState([]);
   const [asignacionesRapidas, setAsignacionesRapidas] = useState({});
   const [motivoCancelacion, setMotivoCancelacion] = useState('');
+  const [asistenciaConsulta, setAsistenciaConsulta] = useState(null);
   const [nuevoEquipoEntrenador, setNuevoEquipoEntrenador] = useState({
     nombre: '',
     sede_id: '',
@@ -342,11 +344,10 @@ export default function PanelEntrenador({
 
   async function abrirAsistencia(ev) {
     setEventoAsistencia(ev);
-
+  
     const { data, error } = await supabase
       .from('equipo_deportista')
-      .select(
-        `
+      .select(`
         id,
         deportista:deportistas(
           id,
@@ -354,65 +355,69 @@ export default function PanelEntrenador({
           deportista_documento,
           foto_url
         )
-      `
-      )
+      `)
       .eq('equipo_id', ev.equipo_id)
       .eq('estado', 'activo');
-
+  
     if (error) {
       console.error(error);
       alert('Error cargando deportistas');
       return;
     }
-
+  
     setListaAsistencia(
       (data || []).map((item) => ({
         deportista_id: item.deportista?.id,
         nombre: item.deportista?.deportista_nombre || 'Sin nombre',
         documento: item.deportista?.deportista_documento || '',
-        estado: '',
+        foto_url: item.deportista?.foto_url || '',
+        asistio: true,
+        novedad: '',
       }))
     );
   }
-
+  
   async function guardarAsistencia() {
     if (!eventoAsistencia || listaAsistencia.length === 0) {
       alert('No hay asistencia para guardar.');
       return;
     }
-
-    const pendientes = listaAsistencia.filter((item) => !item.estado);
-
-    if (pendientes.length > 0) {
-      alert('Debes marcar asistencia para todos los deportistas.');
+  
+    const sinNovedad = listaAsistencia.filter(
+      (item) => item.asistio === false && !item.novedad.trim()
+    );
+  
+    if (sinNovedad.length > 0) {
+      alert('Debes escribir novedad para las deportistas ausentes.');
       return;
     }
-
+  
     const payload = listaAsistencia.map((item) => ({
       evento_id: eventoAsistencia.id,
       deportista_id: item.deportista_id,
-      estado_asistencia: item.estado,
+      estado_asistencia: item.asistio ? 'asistio' : 'no_asistio',
+      novedad: item.asistio ? null : item.novedad,
       registrado_por: usuario.id,
       fecha_registro: new Date().toISOString(),
     }));
-
+  
     const { error } = await supabase
       .from('asistencia_eventos')
       .upsert(payload, {
         onConflict: 'evento_id,deportista_id',
       });
-
+  
     if (error) {
       console.error(error);
       alert(error.message || 'No se pudo guardar la asistencia.');
       return;
     }
-
+  
     alert('Asistencia guardada correctamente.');
     setEventoAsistencia(null);
     setListaAsistencia([]);
   }
-
+  
   async function crearEquipoEntrenador() {
     if (
       !nuevoEquipoEntrenador.nombre ||
@@ -611,6 +616,43 @@ export default function PanelEntrenador({
     cargarEntrenador();
   }
 
+  async function cerrarEvento(eventoId) {
+
+    const { data: asistencias } = await supabase
+      .from('asistencia_eventos')
+      .select('id')
+      .eq('evento_id', eventoId);
+  
+    if (!asistencias?.length) {
+      alert(
+        'Primero debes registrar la asistencia antes de cerrar el evento.'
+      );
+      return;
+    }
+  
+    const confirmar = confirm(
+      '¿Deseas cerrar este evento?'
+    );
+  
+    if (!confirmar) return;
+  
+    const { error } = await supabase
+      .from('agenda_eventos')
+      .update({
+        estado_evento: 'cumplido',
+      })
+      .eq('id', eventoId);
+  
+    if (error) {
+      alert(error.message);
+      return;
+    }
+  
+    await cargarEntrenador();
+  
+    alert('Evento cerrado correctamente.');
+  }
+
   async function cerrarSesion() {
     await supabase.auth.signOut();
     setUsuario(null);
@@ -624,15 +666,15 @@ export default function PanelEntrenador({
   
   
   const eventosProximos = eventos
-  .filter((ev) => new Date(`${ev.fecha}T${ev.hora_fin || '23:59'}`) >= new Date())
+  .filter((ev) => ev.estado_evento !== 'cumplido' && ev.estado_evento !== 'cancelado')
   .sort(
     (a, b) =>
       new Date(`${a.fecha}T${a.hora_inicio || '00:00'}`) -
       new Date(`${b.fecha}T${b.hora_inicio || '00:00'}`)
   );
 
-const eventosCumplidos = eventos
-  .filter((ev) => new Date(`${ev.fecha}T${ev.hora_fin || '23:59'}`) < new Date())
+  const eventosCumplidos = eventos
+  .filter((ev) => ev.estado_evento === 'cumplido')
   .sort(
     (a, b) =>
       new Date(`${b.fecha}T${b.hora_inicio || '00:00'}`) -
@@ -795,6 +837,22 @@ const eventosCumplidos = eventos
     );
     
   }
+
+  if (eventoAsistencia) {
+    return (
+      <EntrenadorAsistencia
+        evento={eventoAsistencia}
+        listaAsistencia={listaAsistencia}
+        setListaAsistencia={setListaAsistencia}
+        guardarAsistencia={guardarAsistencia}
+        volver={() => {
+          setEventoAsistencia(null);
+          setListaAsistencia([]);
+        }}
+      />
+    );
+  }
+
 
   return (
     <main style={styles.adminPage}>
@@ -1281,14 +1339,15 @@ const eventosCumplidos = eventos
           {eventosProximos.length === 0 && <p>No tienes próximos eventos.</p>}
 
           {eventosProximos.map((ev) => (
-            <EventoEntrenadorCard
-              key={ev.id}
-              ev={ev}
-              abrirAsistencia={abrirAsistencia}
-              setEventoEditando={setEventoEditando}
-              setEventoCancelando={setEventoCancelando}
-              setMotivoCancelacion={setMotivoCancelacion}
-            />
+           <EventoEntrenadorCard
+           ev={ev}
+           abrirAsistencia={abrirAsistencia}
+           cerrarEvento={cerrarEvento}
+           setEventoEditando={setEventoEditando}
+           setEventoCancelando={setEventoCancelando}
+           setMotivoCancelacion={setMotivoCancelacion}
+         />
+
           ))}
 
           <h2 style={{ marginTop: 30 }}>Eventos cumplidos</h2>
@@ -1422,97 +1481,37 @@ const eventosCumplidos = eventos
             >
               Volver
             </button>
-          </section>
-        )}
-
-        {eventoAsistencia && (
-          <>
-            <div style={styles.adminHeaderInline}>
-              <h1 style={styles.adminTitle}>Asistencia</h1>
-
-              <button
-                style={styles.adminPlusBtn}
-                onClick={() => {
-                  setEventoAsistencia(null);
-                  setListaAsistencia([]);
-                }}
-              >
-                ×
-              </button>
-            </div>
-
-            <section style={styles.adminPanel}>
-              <h3>{eventoAsistencia.titulo}</h3>
-              <p>
-                <strong>Equipo:</strong>{' '}
-                {eventoAsistencia.equipo?.nombre || 'Sin equipo'}
-              </p>
-              <p>
-                <strong>Fecha:</strong> {eventoAsistencia.fecha}
-              </p>
             </section>
+            )}
 
-            <section style={styles.adminPanel}>
-              {listaAsistencia.length === 0 && (
-                <p>No hay deportistas asignados a este equipo.</p>
-              )}
-
-              {listaAsistencia.map((item, index) => (
-                <div key={item.deportista_id} style={styles.asistenciaFila}>
-                  <div>
-                    <strong>{item.nombre}</strong>
-                    <br />
-                    <small>{item.documento}</small>
-                  </div>
-
-                  <select
-                    style={styles.asistenciaSelect}
-                    value={item.estado}
-                    onChange={(e) => {
-                      const copia = [...listaAsistencia];
-                      copia[index].estado = e.target.value;
-                      setListaAsistencia(copia);
-                    }}
-                  >
-                    <option value="">Seleccionar</option>
-                    <option value="asistio">✅ Asistió</option>
-                    <option value="no_asistio">❌ No asistió</option>
-                    <option value="tarde">⏰ Llegó tarde</option>
-                    <option value="excusa">📄 Excusa</option>
-                  </select>
-                </div>
-              ))}
-
-              <button style={styles.boton} onClick={guardarAsistencia}>
-                Guardar asistencia
-              </button>
             </section>
-          </>
-        )}
-      </section>
-    </main>
-  );
-}
+          </main>
+        );
+      }
+        
 
-function EventoEntrenadorCard({
-  ev,
-  abrirAsistencia,
-  setEventoEditando,
-  setEventoCancelando,
-  setMotivoCancelacion,
-  cumplido = false,
-}) {
+      function EventoEntrenadorCard({
+        ev,
+        abrirAsistencia,
+        cerrarEvento,
+        setEventoEditando,
+        setEventoCancelando,
+        setMotivoCancelacion,
+        cumplido = false,
+      })
+
+{
   return (
     <div key={ev.id} style={styles.agendaCard}>
       <div style={styles.agendaFecha}>
         <strong style={{ fontSize: '22px' }}>
-          {new Date(ev.fecha).getDate()}
+        {new Date(ev.fecha).getDate()}
         </strong>
 
         <span>
-          {new Date(ev.fecha).toLocaleDateString('es-CO', {
-            month: 'short',
-          })}
+        {new Date(`${ev.fecha}T12:00:00`).toLocaleDateString('es-CO', {
+  month: 'short',
+})}
         </span>
       </div>
 
@@ -1534,6 +1533,25 @@ function EventoEntrenadorCard({
           >
             Asistencia
           </button>
+
+          {!cumplido && (
+          <button
+            style={{
+              width: '100%',
+              marginTop: 8,
+              padding: 12,
+              border: 'none',
+              borderRadius: 12,
+              background: '#16a34a',
+              color: '#fff',
+              fontWeight: 700,
+              cursor: 'pointer',
+            }}
+            onClick={() => cerrarEvento(ev.id)}
+          >
+            ✅ Cerrar evento
+          </button>
+        )}
 
           <button
             style={styles.botonMini}
