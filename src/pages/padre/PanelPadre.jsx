@@ -142,10 +142,8 @@ export default function PanelPadre({ usuario, perfil, setPantalla, setUsuario, s
               />
             )}
   
-            {tab === 'pagos' && <PagosPadre />}
-            {tab === 'eventos' && <EventosPadre deportista={deportista} />}
-            {tab === 'docs' && <DocumentosPadre />}
-          </>
+            {tab === 'pagos' && <PagosPadre deportista={deportista} />}            {tab === 'eventos' && <EventosPadre deportista={deportista} />}
+            {tab === 'docs' && <DocumentosPadre deportista={deportista} />}          </>
         )}
   
         <BottomNav tab={tab} setTab={setTab} />
@@ -780,8 +778,67 @@ export default function PanelPadre({ usuario, perfil, setPantalla, setUsuario, s
     );
   }
   
-  function PagosPadre() {
+  const linksPago = [
+    {
+      concepto: 'Inscripción',
+      descripcion: 'Pago de inscripción deportiva.',
+      valor: '',
+      url: 'https://tu-link-inscripcion.com',
+    },
+    {
+      concepto: 'Mensualidad Bogotá',
+      descripcion: 'Pago mensualidad sede Bogotá.',
+      valor: '',
+      url: 'https://tu-link-mensualidad-bogota.com',
+    },
+    {
+      concepto: 'Mensualidad Sabana',
+      descripcion: 'Pago mensualidad sede Sabana.',
+      valor: '',
+      url: 'https://tu-link-mensualidad-sabana.com',
+    },
+    {
+      concepto: 'Uniformes',
+      descripcion: 'Pago de uniformes deportivos.',
+      valor: '',
+      url: 'https://tu-link-uniformes.com',
+    },
+  ];
+
+  function PagosPadre({ deportista }) {
+    const [pagos, setPagos] = useState([]);
+    const [cargandoPagos, setCargandoPagos] = useState(true);
+  
+    useEffect(() => {
+      cargarPagos();
+    }, []);
+  
+    async function cargarPagos() {
+      setCargandoPagos(true);
+  
+      const { data, error } = await supabase
+        .from('pagos')
+        .select('*')
+        .eq('deportista_documento', deportista.deportista_documento)
+        .order('concepto');
+  
+      if (error) {
+        console.error(error);
+        alert('No se pudieron cargar los pagos.');
+        setPagos([]);
+      } else {
+        setPagos(data || []);
+      }
+  
+      setCargandoPagos(false);
+    }
+  
     function abrirPago(url) {
+      if (!url) {
+        alert('Este pago no tiene link configurado.');
+        return;
+      }
+  
       window.open(url, '_blank');
     }
   
@@ -790,29 +847,46 @@ export default function PanelPadre({ usuario, perfil, setPantalla, setUsuario, s
         <PortalTitle icono="💳" titulo="PAGOS" />
   
         <p style={styles.pageIntro}>
-          Selecciona el concepto que deseas pagar. El pago se abrirá en una
-          ventana externa.
+          Selecciona el concepto que deseas pagar.
         </p>
   
-        {linksPago.map((link) => (
-          <section key={link.concepto} style={styles.pagoItemCard}>
-            <div style={styles.pseCircle}>PSE</div>
-  
-            <div style={styles.pagoInfo}>
-              <h3>{link.concepto}</h3>
-              <p>{link.descripcion}</p>
-              {link.valor && <strong>{link.valor}</strong>}
-              <small>Disponible</small>
-            </div>
-            <button style={styles.pagarBtn} onClick={() => abrirPago(link.url)}>
-              Pagar
-            </button>
+        {cargandoPagos && (
+          <section style={styles.eventoGrandeCard}>
+            <p>Cargando pagos...</p>
           </section>
-        ))}
+        )}
+  
+        {!cargandoPagos && pagos.length === 0 && (
+          <section style={styles.eventoGrandeCard}>
+            <h3>No tienes pagos configurados</h3>
+          </section>
+        )}
+  
+        {!cargandoPagos &&
+          pagos.map((link) => (
+            <section key={link.id} style={styles.pagoItemCard}>
+              <div style={styles.pseCircle}>PSE</div>
+  
+              <div style={styles.pagoInfo}>
+                <h3>{link.concepto}</h3>
+                {link.descripcion && <p>{link.descripcion}</p>}
+                {link.valor && <strong>{link.valor}</strong>}
+                <small>{link.estado || 'Disponible'}</small>
+              </div>
+  
+              <button
+                style={styles.pagarBtn}
+                onClick={() => abrirPago(link.url)}
+              >
+                Pagar
+              </button>
+            </section>
+          ))}
       </>
     );
   }
   
+
   function EventosPadre({ deportista }) {
     const [eventos, setEventos] = useState([]);
     const [historialAsistencia, setHistorialAsistencia] = useState([]);
@@ -964,109 +1038,220 @@ export default function PanelPadre({ usuario, perfil, setPantalla, setUsuario, s
     );
   }
   
-  function DocumentosPadre() {
-    const [documentos, setDocumentos] = useState([]);
-    const [cargandoDocs, setCargandoDocs] = useState(true);
+  function DocumentosPadre({ deportista }) {
+    const [cobertura, setCobertura] = useState(null);
+    const [cargando, setCargando] = useState(true);
+  
+    useEffect(() => {
+      cargarCobertura();
+    }, []);
+  
+    async function cargarCobertura() {
+      setCargando(true);
+  
+      const { data, error } = await supabase
+        .from('deportista_coberturas')
+        .select('*')
+        .eq('deportista_documento', deportista.deportista_documento)
+        .eq('estado', 'activo')
+        .maybeSingle();
+  
+      if (error) {
+        console.error(error);
+        setCobertura(null);
+      } else {
+        setCobertura(data || null);
+      }
+  
+      setCargando(false);
+    }
+  
     return (
       <>
         <PortalTitle icono="📄" titulo="DOCUMENTOS" />
   
-        {cargandoDocs && (
-          <section style={styles.eventoGrandeCard}>
-            <p>Cargando documentos...</p>
-          </section>
-        )}
-  
-        {!cargandoDocs && documentos.length === 0 && (
-          <section style={styles.eventoGrandeCard}>
-            <h3>No hay documentos cargados</h3>
-            <p>El club aún no ha subido documentos.</p>
-          </section>
-        )}
-  
-        {documentos.map((doc) => (
-          <section key={doc.id} style={styles.documentoCard}>
-            <div style={styles.documentoHeader}>
-              <h3>{doc.tipo_documento}</h3>
-  
-              <div
-                style={{
-                  ...styles.estadoDocumento,
-                  background:
-                    doc.estado === 'Vigente'
-                      ? '#d4edda'
-                      : doc.estado === 'Vencido'
-                      ? '#f8d7da'
-                      : '#fff3cd',
-                  color:
-                    doc.estado === 'Vigente'
-                      ? '#155724'
-                      : doc.estado === 'Vencido'
-                      ? '#721c24'
-                      : '#856404',
-                }}
-              >
-                {doc.estado}
-              </div>
-            </div>
-  
-            {doc.fecha_vencimiento && (
-              <p>
-                <strong>Vence:</strong> {doc.fecha_vencimiento}
-              </p>
-            )}
-  
-            {doc.observacion && <p>{doc.observacion}</p>}
-  
-            {doc.archivo_url && (
-              <a
-                href={doc.archivo_url}
-                target="_blank"
-                rel="noreferrer"
-                style={styles.botonVerDocumento}
-              >
-                Ver documento
-              </a>
-            )}
-          </section>
-        ))}
         <section style={styles.alertaProteccion}>
-          <div style={styles.portalIcon}>A</div>
+          <div style={styles.portalIcon}>🛡️</div>
           <div>
-            <h3>Programa de Protección Deportiva</h3>
-            <p>Compañía de seguros 601-744-3718</p>
-            <small>Llamar primero para asignar centro asistencial</small>
-          </div>
-        </section>
+          <h3 style={{ margin: 0, fontSize: 17 }}>
+            Programa Protección Deportiva
+          </h3>
+
+          <p style={{ margin: '6px 0', fontSize: 13 }}>
+            Número de póliza 1000092
+            <br />
+            Línea de atención: 601-744-3718
+          </p>
+
+          <small>Solicitar autorización antes de acudir.</small>
+        </div>
+      </section>
+
+        {!cargando && cobertura && (
+  <section
+    style={{
+      background: '#dcfce7',
+      border: '1px solid #22c55e',
+      borderRadius: 16,
+      padding: 14,
+      marginBottom: 16,
+      textAlign: 'center',
+    }}
+  >
+    <div
+      style={{
+        color: '#15803d',
+        fontWeight: 800,
+        fontSize: 16,
+      }}
+    >
+      🟢 COBERTURA ACTIVA
+    </div>
+
+    <div
+      style={{
+        marginTop: 4,
+        color: '#166534',
+        fontSize: 13,
+      }}
+    >
+      Vigencia: {cobertura.fecha_inicio} al {cobertura.fecha_fin}
+    </div>
+  </section>
+)}
+
+{!cargando && !cobertura && (
+  <section
+    style={{
+      background: '#fee2e2',
+      border: '1px solid #ef4444',
+      borderRadius: 16,
+      padding: 14,
+      marginBottom: 16,
+      textAlign: 'center',
+    }}
+  >
+    <div
+      style={{
+        color: '#b91c1c',
+        fontWeight: 800,
+        fontSize: 16,
+      }}
+    >
+      🔴 SIN COBERTURA ACTIVA
+    </div>
+
+    <div
+      style={{
+        marginTop: 4,
+        color: '#991b1b',
+        fontSize: 13,
+      }}
+    >
+      Comunícate con Club Cedro para validar la afiliación.
+    </div>
+  </section>
+)}
+
   
-        <DocumentoCard
-          titulo="Resumen del programa Protección deportiva"
-          texto="Resumen general del programa de protección para deportistas."
-        />
-        <DocumentoCard
-          titulo="Condicionado detallado de asistencia"
-          texto="Condiciones generales, alcances y exclusiones del programa."
-        />
-        <DocumentoCard
-          titulo="Slip de póliza de seguros"
-          texto="Documento de referencia de la póliza asociada al programa."
-        />
+       
+<DocumentoCard
+  icono="🛡️"
+  titulo="Resumen protección deportiva"
+  texto="Resumen general del programa para deportistas."
+  archivo="/docs/resumen-proteccion.pdf"
+/>
+
+<DocumentoCard
+  icono="📘"
+  titulo="Condicionado de asistencia"
+  texto="Condiciones generales, alcances y exclusiones."
+  archivo="/docs/condicionado-asistencia.pdf"
+/>
+
+<DocumentoCard
+  icono="📄"
+  titulo="Slip póliza de seguros"
+  texto="Coberturas principales de la póliza."
+  archivo="/docs/slip-poliza.pdf"
+/>
+    
       </>
     );
   }
-  
-  function DocumentoCard({ titulo, texto }) {
+
+  function DocumentoCard({ icono, titulo, texto, archivo }) {
     return (
-      <section style={styles.documentoCard}>
-        <div>
-          <h3>{titulo}</h3>
-          <p>{texto}</p>
+      <section
+        style={{
+          background: '#fff',
+          borderRadius: 18,
+          padding: 18,
+          marginBottom: 14,
+          boxShadow: '0 8px 20px rgba(0,0,0,0.08)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 14,
+        }}
+      >
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 14,
+            flex: 1,
+          }}
+        >
+          <div style={{ fontSize: 26 }}>{icono}</div>
+  
+          <div>
+            <h3
+              style={{
+                margin: 0,
+                fontSize: 16,
+                color: '#072c8f',
+                fontWeight: 800,
+              }}
+            >
+              {titulo}
+            </h3>
+  
+            <p
+              style={{
+                margin: '6px 0 0',
+                fontSize: 13,
+                color: '#64748b',
+                lineHeight: 1.35,
+              }}
+            >
+              {texto}
+            </p>
+          </div>
         </div>
-        <button style={styles.pagarBtn}>Ver</button>
+  
+        <a
+          href={archivo}
+          target="_blank"
+          rel="noreferrer"
+          style={{
+            background: '#253a9b',
+            color: '#fff',
+            padding: '9px 13px',
+            borderRadius: 10,
+            textDecoration: 'none',
+            fontSize: 13,
+            fontWeight: 800,
+            minWidth: 44,
+            textAlign: 'center',
+          }}
+        >
+          Ver
+        </a>
       </section>
     );
   }
-  
+
   function BottomNav({ tab, setTab }) {
     return (
       <nav style={styles.bottomNav}>

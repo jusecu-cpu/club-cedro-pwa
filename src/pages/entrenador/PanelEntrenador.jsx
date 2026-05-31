@@ -32,9 +32,9 @@ export default function PanelEntrenador({
   const [eventoCancelando, setEventoCancelando] = useState(null);
   const [eventoAsistencia, setEventoAsistencia] = useState(null);
   const [listaAsistencia, setListaAsistencia] = useState([]);
+  const [asistenciaConsulta, setAsistenciaConsulta] = useState(null);
   const [asignacionesRapidas, setAsignacionesRapidas] = useState({});
   const [motivoCancelacion, setMotivoCancelacion] = useState('');
-  const [asistenciaConsulta, setAsistenciaConsulta] = useState(null);
   const [nuevoEquipoEntrenador, setNuevoEquipoEntrenador] = useState({
     nombre: '',
     sede_id: '',
@@ -653,6 +653,34 @@ export default function PanelEntrenador({
     alert('Evento cerrado correctamente.');
   }
 
+  async function verAsistencia(ev) {
+    const { data, error } = await supabase
+      .from('asistencia_eventos')
+      .select(`
+        id,
+        estado_asistencia,
+        novedad,
+        fecha_registro,
+        deportista:deportistas(
+          deportista_nombre,
+          deportista_documento,
+          foto_url
+        )
+      `)
+      .eq('evento_id', ev.id);
+  
+    if (error) {
+      console.error(error);
+      alert('No se pudo cargar la asistencia.');
+      return;
+    }
+  
+    setAsistenciaConsulta({
+      evento: ev,
+      registros: data || [],
+    });
+  }
+
   async function cerrarSesion() {
     await supabase.auth.signOut();
     setUsuario(null);
@@ -853,6 +881,112 @@ export default function PanelEntrenador({
     );
   }
 
+  if (asistenciaConsulta) {
+    return (
+      <main style={styles.adminPage}>
+        <header style={styles.adminTopbar}>
+          <button
+            style={styles.menuHamburguesa}
+            onClick={() => setAsistenciaConsulta(null)}
+          >
+            ←
+          </button>
+  
+          <h2 style={{ color: '#fff', margin: 0 }}>
+            Ver asistencia
+          </h2>
+  
+          <div style={{ width: 40 }} />
+        </header>
+  
+        <section style={styles.adminBody}>
+          <section style={styles.adminPanel}>
+            <h2>{asistenciaConsulta.evento.titulo}</h2>
+            <p>
+              {asistenciaConsulta.evento.equipo?.nombre || 'Sin equipo'}
+            </p>
+            <small>{asistenciaConsulta.evento.fecha}</small>
+          </section>
+  
+          {asistenciaConsulta.registros.length === 0 && (
+            <section style={styles.adminPanel}>
+              <p>No hay asistencia registrada para este evento.</p>
+            </section>
+          )}
+  
+          {asistenciaConsulta.registros.map((item) => (
+            <div
+              key={item.id}
+              style={{
+                background: '#fff',
+                borderRadius: 16,
+                padding: 16,
+                marginBottom: 12,
+                boxShadow: '0 4px 10px rgba(0,0,0,0.08)',
+                display: 'flex',
+                gap: 12,
+                alignItems: 'center',
+              }}
+            >
+              {item.deportista?.foto_url ? (
+                <img
+                  src={item.deportista.foto_url}
+                  alt={item.deportista.deportista_nombre}
+                  style={{
+                    width: 50,
+                    height: 50,
+                    borderRadius: '50%',
+                    objectFit: 'cover',
+                  }}
+                />
+              ) : (
+                <div
+                  style={{
+                    width: 50,
+                    height: 50,
+                    borderRadius: '50%',
+                    background: '#072c8f',
+                    color: '#fff',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontWeight: 700,
+                  }}
+                >
+                  {item.deportista?.deportista_nombre?.charAt(0) || 'D'}
+                </div>
+              )}
+  
+              <div style={{ flex: 1 }}>
+                <strong>{item.deportista?.deportista_nombre}</strong>
+                <br />
+                <small>{item.deportista?.deportista_documento}</small>
+  
+                {item.novedad && (
+                  <p style={{ margin: '6px 0 0', fontSize: 13 }}>
+                    {item.novedad}
+                  </p>
+                )}
+              </div>
+  
+              <strong
+                style={{
+                  color:
+                    item.estado_asistencia === 'asistio'
+                      ? '#16a34a'
+                      : '#dc2626',
+                }}
+              >
+                {item.estado_asistencia === 'asistio'
+                  ? 'Presente'
+                  : 'Ausente'}
+              </strong>
+            </div>
+          ))}
+        </section>
+      </main>
+    );
+  }
 
   return (
     <main style={styles.adminPage}>
@@ -1346,6 +1480,7 @@ export default function PanelEntrenador({
            setEventoEditando={setEventoEditando}
            setEventoCancelando={setEventoCancelando}
            setMotivoCancelacion={setMotivoCancelacion}
+           verAsistencia={verAsistencia}
          />
 
           ))}
@@ -1363,6 +1498,7 @@ export default function PanelEntrenador({
               setEventoCancelando={setEventoCancelando}
               setMotivoCancelacion={setMotivoCancelacion}
               cumplido
+              verAsistencia={verAsistencia}
             />
           ))}
         </section>
@@ -1489,11 +1625,11 @@ export default function PanelEntrenador({
         );
       }
         
-
       function EventoEntrenadorCard({
         ev,
         abrirAsistencia,
-        cerrarEvento,
+        verAsistencia,
+        cerrarEvento,     
         setEventoEditando,
         setEventoCancelando,
         setMotivoCancelacion,
@@ -1552,6 +1688,15 @@ export default function PanelEntrenador({
             ✅ Cerrar evento
           </button>
         )}
+
+        <button
+          style={styles.botonMini}
+          onClick={() => verAsistencia(ev)}
+        >
+          Ver asistencia
+        </button>
+
+          
 
           <button
             style={styles.botonMini}
