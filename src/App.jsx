@@ -129,7 +129,7 @@ function Login({ setPantalla, setUsuario, setPerfil }) {
 
   async function iniciarSesion() {
     if (!correo || !password) {
-      alert('Completa correo y contraseña');
+      alert('Completa usuario y contraseña');
       return;
     }
 
@@ -173,11 +173,16 @@ function Login({ setPantalla, setUsuario, setPerfil }) {
 
   async function recuperarPassword() {
     if (!correo) {
-      alert('Escribe primero tu correo electrónico.');
+      alert('Escribe primero tu usuario o correo.');
       return;
     }
 
-    const { error } = await supabase.auth.resetPasswordForEmail(correo, {
+    const usuarioLimpio = correo.trim().toLowerCase();
+    const emailLogin = usuarioLimpio.includes('@')
+      ? usuarioLimpio
+      : `${usuarioLimpio}@clubcedro.com`;
+
+    const { error } = await supabase.auth.resetPasswordForEmail(emailLogin, {
       redirectTo: window.location.origin,
     });
 
@@ -186,88 +191,171 @@ function Login({ setPantalla, setUsuario, setPerfil }) {
       return;
     }
 
-    alert('Te enviamos un correo para crear o recuperar tu contraseña.');
+    alert('Te enviamos un correo para recuperar tu contraseña.');
   }
 
   return (
-    <main style={styles.loginContainer}>
-      <img src={logo} alt="Club Cedro" style={styles.loginLogo} />
+    <main
+      style={{
+        ...styles.loginContainer,
+        gap: 18,
+      }}
+    >
+      <img
+        src={logo}
+        alt="Club Cedro"
+        style={{
+          ...styles.loginLogo,
+          marginBottom: 4,
+        }}
+      />
 
-      <h1 style={styles.loginTitulo}>Bienvenidos</h1>
-      <p style={styles.loginSubtitulo}>Ingresa tus datos para continuar</p>
+      <section
+        style={{
+          textAlign: 'center',
+          marginBottom: 4,
+        }}
+      >
+        <h1
+          style={{
+            color: '#072c8f',
+            fontSize: 28,
+            fontWeight: 900,
+            lineHeight: 1.05,
+            margin: '0 0 8px',
+          }}
+        >
+          Bienvenidos
+          <br />
+          Club Deportivo Cedro
+        </h1>
 
-      <section style={styles.roleBox}>
-        <p style={styles.roleTitle}>Ingresar como</p>
-
-        <div style={styles.roleButtons}>
-          <button
-            style={
-              perfilIngreso === 'padre' ? styles.roleBtnActivo : styles.roleBtn
-            }
-            onClick={() => setPerfilIngreso('padre')}
-          >
-            Padre / Acudiente
-          </button>
-
-          <button
-            style={
-              perfilIngreso === 'entrenador'
-                ? styles.roleBtnActivo
-                : styles.roleBtn
-            }
-            onClick={() => setPerfilIngreso('entrenador')}
-          >
-            Entrenador
-          </button>
-
-          <button
-            style={
-              perfilIngreso === 'admin' ? styles.roleBtnActivo : styles.roleBtn
-            }
-            onClick={() => setPerfilIngreso('admin')}
-          >
-            Admin
-          </button>
-        </div>
+        <p
+          style={{
+            color: '#334155',
+            fontSize: 14,
+            lineHeight: 1.35,
+            margin: 0,
+          }}
+        >
+          Ingresa con el documento del deportista para acceder a tu portal.
+        </p>
       </section>
 
-      <section style={styles.loginBox}>
-        <label style={styles.loginLabel}>E-mail</label>
+      <section
+        style={{
+          ...styles.loginBox,
+          marginBottom: 6,
+          padding: 18,
+        }}
+      >
+        <label style={styles.loginLabel}>Ingresar como</label>
+
+        <select
+          style={styles.loginInput}
+          value={perfilIngreso}
+          onChange={(e) => setPerfilIngreso(e.target.value)}
+        >
+          <option value="padre">Padre / Acudiente</option>
+          <option value="entrenador">Entrenador</option>
+          <option value="admin">Admin</option>
+        </select>
+      </section>
+
+      <section
+        style={{
+          ...styles.loginBox,
+          padding: 18,
+          marginBottom: 8,
+        }}
+      >
+        <label style={styles.loginLabel}>
+          {perfilIngreso === 'padre'
+            ? 'Documento del deportista'
+            : 'Correo electrónico'}
+        </label>
+
         <input
-          type="email"
-          placeholder="Tu correo electrónico"
+          type="text"
+          placeholder={
+            perfilIngreso === 'padre'
+              ? 'Ingresa el documento del deportista'
+              : 'Ingresa tu correo electrónico'
+          }
           style={styles.loginInput}
           value={correo}
           onChange={(e) => setCorreo(e.target.value)}
         />
 
         <label style={styles.loginLabel}>Contraseña</label>
+
         <input
           type="password"
-          placeholder="Tu contraseña"
+          placeholder="Ingresa tu contraseña"
           style={styles.loginInput}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
         />
 
-        <button style={styles.loginButton} onClick={iniciarSesion}>
+        {perfilIngreso === 'padre' && (
+          <div
+            style={{
+              background: '#eef5ff',
+              borderRadius: 12,
+              padding: 10,
+              marginTop: 12,
+              textAlign: 'center',
+              fontSize: 13,
+              color: '#072c8f',
+              lineHeight: 1.45,
+            }}
+          >
+            Usuario y contraseña inicial:
+            <br />
+            <strong>Documento del deportista</strong>
+          </div>
+        )}
+
+        <button
+          style={{
+            ...styles.loginButton,
+            marginTop: 18,
+          }}
+          onClick={iniciarSesion}
+          disabled={loading}
+        >
           {loading ? 'Ingresando...' : 'Ingresar'}
         </button>
       </section>
 
-      <button style={styles.forgotButton} onClick={recuperarPassword}>
-        ¿Olvidaste o quieres crear tu contraseña?
+      <button
+        style={{
+          background: 'transparent',
+          border: 'none',
+          color: '#6b7280',
+          fontSize: 14,
+          marginTop: 0,
+          cursor: 'pointer',
+        }}
+        onClick={recuperarPassword}
+      >
+        ¿Olvidaste tu contraseña?
       </button>
 
       <button
-        style={styles.createAccountButton}
-        onClick={() => setPantalla('activar')}
+        style={{
+          ...styles.loginButton,
+          width: '100%',
+          marginTop: 4,
+        }}
+        onClick={() => setPantalla('registro')}
       >
-        Activar cuenta / Inscribir deportista
+        Inscribir nuevo deportista
       </button>
     </main>
   );
 }
+
 
 function RegistroInscripcion({ setPantalla }) {
   const [sedes, setSedes] = useState([]);

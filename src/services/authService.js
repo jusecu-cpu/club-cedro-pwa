@@ -1,21 +1,35 @@
 import { supabase } from '../lib/supabase';
 
+function normalizarCorreo(correo) {
+  const usuarioLimpio = correo.trim().toLowerCase();
+
+  return usuarioLimpio.includes('@')
+    ? usuarioLimpio
+    : `${usuarioLimpio}@clubcedro.com`;
+}
+
 export async function iniciarSesion(correo, password) {
+  const emailLogin = normalizarCorreo(correo);
+
   return await supabase.auth.signInWithPassword({
-    email: correo,
+    email: emailLogin,
     password,
   });
 }
 
 export async function crearUsuario(correo, password) {
+  const emailLogin = normalizarCorreo(correo);
+
   return await supabase.auth.signUp({
-    email: correo,
+    email: emailLogin,
     password,
   });
 }
 
 export async function recuperarPassword(correo) {
-  return await supabase.auth.resetPasswordForEmail(correo);
+  const emailLogin = normalizarCorreo(correo);
+
+  return await supabase.auth.resetPasswordForEmail(emailLogin);
 }
 
 export async function cerrarSesion() {
