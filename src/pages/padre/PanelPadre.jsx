@@ -781,64 +781,32 @@ export default function PanelPadre({ usuario, perfil, setPantalla, setUsuario, s
   const linksPago = [
     {
       concepto: 'Inscripción',
-      descripcion: 'Pago de inscripción deportiva.',
+      descripcion: 'Pago único de inscripción deportiva.',
       valor: '',
-      url: 'https://tu-link-inscripcion.com',
+      url: 'https://www.mipagoamigo.com/MPA_WebSite/ServicePayments/StartPayment?id=1984&searchedAgreementName=CLUB%20CEDRO%20INSCRIPCIONES%20DEPORTIVAS',
+    },
+    {
+      concepto: 'Pago uniformes',
+      descripcion: 'Pago de uniformes oficiales del club.',
+      valor: '',
+      url: 'https://www.mipagoamigo.com/MPA_WebSite/ServicePayments/StartPayment?id=1984&searchedAgreementName=CLUB%20CEDRO%20UNIFORMES',
     },
     {
       concepto: 'Mensualidad Bogotá',
-      descripcion: 'Pago mensualidad sede Bogotá.',
+      descripcion: 'Mensualidad sede Bogotá Capital.',
       valor: '',
-      url: 'https://tu-link-mensualidad-bogota.com',
+      url: 'https://www.mipagoamigo.com/MPA_WebSite/ServicePayments/StartPayment?id=1984&searchedAgreementName=CEDRO%20BOGOTA%20CAPITAL%20MENSUALIDADES',
     },
     {
-      concepto: 'Mensualidad Sabana',
-      descripcion: 'Pago mensualidad sede Sabana.',
+      concepto: 'Mensualidad Sabana / Chía',
+      descripcion: 'Mensualidad sede Sabana Chía.',
       valor: '',
-      url: 'https://tu-link-mensualidad-sabana.com',
-    },
-    {
-      concepto: 'Uniformes',
-      descripcion: 'Pago de uniformes deportivos.',
-      valor: '',
-      url: 'https://tu-link-uniformes.com',
+      url: 'https://www.mipagoamigo.com/MPA_WebSite/ServicePayments/StartPayment?id=1986&searchedAgreementName=CEDRO%20SABANA%20CHIA%20MENSUALIDADES',
     },
   ];
-
-  function PagosPadre({ deportista }) {
-    const [pagos, setPagos] = useState([]);
-    const [cargandoPagos, setCargandoPagos] = useState(true);
   
-    useEffect(() => {
-      cargarPagos();
-    }, []);
-  
-    async function cargarPagos() {
-      setCargandoPagos(true);
-  
-      const { data, error } = await supabase
-        .from('pagos')
-        .select('*')
-        .eq('deportista_documento', deportista.deportista_documento)
-        .order('concepto');
-  
-      if (error) {
-        console.error(error);
-        alert('No se pudieron cargar los pagos.');
-        setPagos([]);
-      } else {
-        setPagos(data || []);
-      }
-  
-      setCargandoPagos(false);
-    }
-  
+  function PagosPadre() {
     function abrirPago(url) {
-      if (!url) {
-        alert('Este pago no tiene link configurado.');
-        return;
-      }
-  
       window.open(url, '_blank');
     }
   
@@ -850,38 +818,25 @@ export default function PanelPadre({ usuario, perfil, setPantalla, setUsuario, s
           Selecciona el concepto que deseas pagar.
         </p>
   
-        {cargandoPagos && (
-          <section style={styles.eventoGrandeCard}>
-            <p>Cargando pagos...</p>
+        {linksPago.map((link) => (
+          <section key={link.concepto} style={styles.pagoItemCard}>
+            <div style={styles.pseCircle}>PSE</div>
+  
+            <div style={styles.pagoInfo}>
+              <h3>{link.concepto}</h3>
+              <p>{link.descripcion}</p>
+              {link.valor && <strong>{link.valor}</strong>}
+              <small>Disponible</small>
+            </div>
+  
+            <button
+              style={styles.pagarBtn}
+              onClick={() => abrirPago(link.url)}
+            >
+              Pagar
+            </button>
           </section>
-        )}
-  
-        {!cargandoPagos && pagos.length === 0 && (
-          <section style={styles.eventoGrandeCard}>
-            <h3>No tienes pagos configurados</h3>
-          </section>
-        )}
-  
-        {!cargandoPagos &&
-          pagos.map((link) => (
-            <section key={link.id} style={styles.pagoItemCard}>
-              <div style={styles.pseCircle}>PSE</div>
-  
-              <div style={styles.pagoInfo}>
-                <h3>{link.concepto}</h3>
-                {link.descripcion && <p>{link.descripcion}</p>}
-                {link.valor && <strong>{link.valor}</strong>}
-                <small>{link.estado || 'Disponible'}</small>
-              </div>
-  
-              <button
-                style={styles.pagarBtn}
-                onClick={() => abrirPago(link.url)}
-              >
-                Pagar
-              </button>
-            </section>
-          ))}
+        ))}
       </>
     );
   }
