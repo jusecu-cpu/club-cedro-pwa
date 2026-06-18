@@ -4,20 +4,70 @@ import { styles } from '../../styles/styles';
 
 export default function EntrenadorDeportistas({ deportistas, recargar }) {
   const [seleccionado, setSeleccionado] = useState(null);
+  const [modoEdicion, setModoEdicion] = useState('editar');
 
   if (seleccionado) {
     return (
       <EditarDeportista
         deportista={seleccionado}
+        modo={modoEdicion}
         volver={() => setSeleccionado(null)}
         recargar={recargar}
       />
     );
   }
 
+  const totalDeportistas = deportistas.length;
+  const activas = deportistas.filter((dep) => dep.estado === 'activo').length;
+  const inactivas = deportistas.filter((dep) => dep.estado === 'inactivo').length;
+
+  const sinEquipo = deportistas.filter((dep) => {
+    const equipoActivo = dep.equipo_deportista?.find(
+      (item) => item.estado === 'activo'
+    );
+    return !equipoActivo;
+  }).length;
+
   return (
     <>
       <h1 style={styles.adminTitle}>Mis deportistas</h1>
+
+      <section
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(2, 1fr)',
+          gap: 10,
+          marginBottom: 16,
+        }}
+      >
+        <div style={styles.adminCard}>
+          <p>Total</p>
+          <h2 style={{ color: '#072c8f', fontSize: 28, margin: 0 }}>
+            {totalDeportistas}
+          </h2>
+        </div>
+
+        <div style={styles.adminCard}>
+          <p>Activas</p>
+          <h2 style={{ color: '#16a34a', fontSize: 28, margin: 0 }}>
+            {activas}
+          </h2>
+        </div>
+
+        <div style={styles.adminCard}>
+          <p>Inactivas</p>
+          <h2 style={{ color: '#dc2626', fontSize: 28, margin: 0 }}>
+            {inactivas}
+          </h2>
+        </div>
+
+        <div style={styles.adminCard}>
+          <p>Sin equipo</p>
+          <h2 style={{ color: '#f59e0b', fontSize: 28, margin: 0 }}>
+            {sinEquipo}
+          </h2>
+        </div>
+      </section>
 
       <section style={styles.adminPanel}>
         {deportistas.length === 0 && <p>No tienes deportistas asignados.</p>}
@@ -106,8 +156,12 @@ export default function EntrenadorDeportistas({ deportistas, recargar }) {
                       borderRadius: 10,
                       fontSize: 12,
                       fontWeight: 700,
+                      cursor: 'pointer',
                     }}
-                    onClick={() => setSeleccionado(dep)}
+                    onClick={() => {
+                      setModoEdicion('editar');
+                      setSeleccionado(dep);
+                    }}
                   >
                     Ver / Editar
                   </button>
@@ -121,8 +175,12 @@ export default function EntrenadorDeportistas({ deportistas, recargar }) {
                       borderRadius: 10,
                       fontSize: 12,
                       fontWeight: 700,
+                      cursor: 'pointer',
                     }}
-                    onClick={() => setSeleccionado(dep)}
+                    onClick={() => {
+                      setModoEdicion('cambiar');
+                      setSeleccionado(dep);
+                    }}
                   >
                     Cambiar
                   </button>
@@ -136,8 +194,12 @@ export default function EntrenadorDeportistas({ deportistas, recargar }) {
                       borderRadius: 10,
                       fontSize: 12,
                       fontWeight: 700,
+                      cursor: 'pointer',
                     }}
-                    onClick={() => setSeleccionado(dep)}
+                    onClick={() => {
+                      setModoEdicion('inactivar');
+                      setSeleccionado(dep);
+                    }}
                   >
                     Inactivar
                   </button>
@@ -151,7 +213,7 @@ export default function EntrenadorDeportistas({ deportistas, recargar }) {
   );
 }
 
-function EditarDeportista({ deportista, volver, recargar }) {
+function EditarDeportista({ deportista, modo, volver, recargar }) {
   const [form, setForm] = useState({
     deportista_nombre: deportista.deportista_nombre || '',
     deportista_documento: deportista.deportista_documento || '',
@@ -174,6 +236,13 @@ function EditarDeportista({ deportista, volver, recargar }) {
   const [notaAdmin, setNotaAdmin] = useState('');
   const [entrenadores, setEntrenadores] = useState([]);
   const [nuevoEntrenador, setNuevoEntrenador] = useState('');
+
+  const tituloPantalla =
+    modo === 'cambiar'
+      ? 'Cambiar entrenador'
+      : modo === 'inactivar'
+      ? 'Inactivar deportista'
+      : 'Editar deportista';
 
   useEffect(() => {
     cargarEntrenadores();
@@ -216,7 +285,6 @@ function EditarDeportista({ deportista, volver, recargar }) {
       .eq('id', deportista.id);
 
     if (error) {
-      console.error(error);
       alert(error.message);
       return;
     }
@@ -309,184 +377,215 @@ function EditarDeportista({ deportista, volver, recargar }) {
         ← Volver
       </button>
 
-      <h1 style={styles.adminTitle}>Editar deportista</h1>
+      <h1 style={styles.adminTitle}>{tituloPantalla}</h1>
 
       <section style={styles.adminPanel}>
-        <h3>Datos deportista</h3>
+        {modo === 'editar' && (
+          <>
+            <h3>Datos deportista</h3>
 
-        <input
-          style={styles.input}
-          placeholder="Foto URL"
-          value={form.foto_url}
-          onChange={(e) => setForm({ ...form, foto_url: e.target.value })}
-        />
+            <input
+              style={styles.input}
+              placeholder="Foto URL"
+              value={form.foto_url}
+              onChange={(e) => setForm({ ...form, foto_url: e.target.value })}
+            />
 
-        <input
-          style={styles.input}
-          placeholder="Nombre completo"
-          value={form.deportista_nombre}
-          onChange={(e) =>
-            setForm({ ...form, deportista_nombre: e.target.value })
-          }
-        />
+            <input
+              style={styles.input}
+              placeholder="Nombre completo"
+              value={form.deportista_nombre}
+              onChange={(e) =>
+                setForm({ ...form, deportista_nombre: e.target.value })
+              }
+            />
 
-        <input
-          style={styles.input}
-          placeholder="Documento"
-          value={form.deportista_documento}
-          onChange={(e) =>
-            setForm({ ...form, deportista_documento: e.target.value })
-          }
-        />
+            <input
+              style={styles.input}
+              placeholder="Documento"
+              value={form.deportista_documento}
+              onChange={(e) =>
+                setForm({ ...form, deportista_documento: e.target.value })
+              }
+            />
 
-        <input
-          type="date"
-          style={styles.input}
-          value={form.fecha_nacimiento}
-          onChange={(e) =>
-            setForm({ ...form, fecha_nacimiento: e.target.value })
-          }
-        />
+            <input
+              type="date"
+              style={styles.input}
+              value={form.fecha_nacimiento}
+              onChange={(e) =>
+                setForm({ ...form, fecha_nacimiento: e.target.value })
+              }
+            />
 
-        <input
-          style={styles.input}
-          placeholder="Dirección vivienda"
-          value={form.direccion_vivienda}
-          onChange={(e) =>
-            setForm({ ...form, direccion_vivienda: e.target.value })
-          }
-        />
+            <input
+              style={styles.input}
+              placeholder="Dirección vivienda"
+              value={form.direccion_vivienda}
+              onChange={(e) =>
+                setForm({ ...form, direccion_vivienda: e.target.value })
+              }
+            />
 
-        <select
-          style={styles.input}
-          value={form.sexo}
-          onChange={(e) => setForm({ ...form, sexo: e.target.value })}
-        >
-          <option value="">Sexo</option>
-          <option value="Femenino">Femenino</option>
-          <option value="Masculino">Masculino</option>
-        </select>
+            <select
+              style={styles.input}
+              value={form.sexo}
+              onChange={(e) => setForm({ ...form, sexo: e.target.value })}
+            >
+              <option value="">Sexo</option>
+              <option value="Femenino">Femenino</option>
+              <option value="Masculino">Masculino</option>
+            </select>
 
-        <input
-          style={styles.input}
-          placeholder="Colegio"
-          value={form.colegio}
-          onChange={(e) => setForm({ ...form, colegio: e.target.value })}
-        />
+            <input
+              style={styles.input}
+              placeholder="Colegio"
+              value={form.colegio}
+              onChange={(e) => setForm({ ...form, colegio: e.target.value })}
+            />
 
-        <h3>Salud</h3>
+            <h3>Salud</h3>
 
-        <input
-          style={styles.input}
-          placeholder="EPS"
-          value={form.eps}
-          onChange={(e) => setForm({ ...form, eps: e.target.value })}
-        />
+            <input
+              style={styles.input}
+              placeholder="EPS"
+              value={form.eps}
+              onChange={(e) => setForm({ ...form, eps: e.target.value })}
+            />
 
-        <input
-          style={styles.input}
-          placeholder="RH"
-          value={form.rh}
-          onChange={(e) => setForm({ ...form, rh: e.target.value })}
-        />
+            <input
+              style={styles.input}
+              placeholder="RH"
+              value={form.rh}
+              onChange={(e) => setForm({ ...form, rh: e.target.value })}
+            />
 
-        <textarea
-          style={styles.input}
-          placeholder="Alergias"
-          value={form.alergias}
-          onChange={(e) => setForm({ ...form, alergias: e.target.value })}
-        />
+            <textarea
+              style={styles.input}
+              placeholder="Alergias"
+              value={form.alergias}
+              onChange={(e) => setForm({ ...form, alergias: e.target.value })}
+            />
 
-        <input
-          style={styles.input}
-          placeholder="Contacto emergencia"
-          value={form.contacto_emergencia}
-          onChange={(e) =>
-            setForm({ ...form, contacto_emergencia: e.target.value })
-          }
-        />
+            <input
+              style={styles.input}
+              placeholder="Contacto emergencia"
+              value={form.contacto_emergencia}
+              onChange={(e) =>
+                setForm({ ...form, contacto_emergencia: e.target.value })
+              }
+            />
 
-        <input
-          style={styles.input}
-          placeholder="Teléfono emergencia"
-          value={form.telefono_emergencia}
-          onChange={(e) =>
-            setForm({ ...form, telefono_emergencia: e.target.value })
-          }
-        />
+            <input
+              style={styles.input}
+              placeholder="Teléfono emergencia"
+              value={form.telefono_emergencia}
+              onChange={(e) =>
+                setForm({ ...form, telefono_emergencia: e.target.value })
+              }
+            />
 
-        <h3>Uniforme</h3>
+            <h3>Uniforme</h3>
 
-        <input
-          style={styles.input}
-          placeholder="Talla camisa"
-          value={form.talla_camisa}
-          onChange={(e) =>
-            setForm({ ...form, talla_camisa: e.target.value })
-          }
-        />
+            <input
+              style={styles.input}
+              placeholder="Talla camisa"
+              value={form.talla_camisa}
+              onChange={(e) =>
+                setForm({ ...form, talla_camisa: e.target.value })
+              }
+            />
 
-        <input
-          style={styles.input}
-          placeholder="Talla pantalón"
-          value={form.talla_pantalon}
-          onChange={(e) =>
-            setForm({ ...form, talla_pantalon: e.target.value })
-          }
-        />
+            <input
+              style={styles.input}
+              placeholder="Talla pantalón"
+              value={form.talla_pantalon}
+              onChange={(e) =>
+                setForm({ ...form, talla_pantalon: e.target.value })
+              }
+            />
 
-        <h3>Gestión deportiva</h3>
+            <h3>Estado</h3>
 
-        <textarea
-          style={styles.input}
-          placeholder="Motivo del cambio o retiro"
-          value={motivoMovimiento}
-          onChange={(e) => setMotivoMovimiento(e.target.value)}
-        />
+            <select
+              style={styles.input}
+              value={form.estado}
+              onChange={(e) => setForm({ ...form, estado: e.target.value })}
+            >
+              <option value="activo">Activo</option>
+              <option value="inactivo">Inactivo</option>
+            </select>
 
-        <textarea
-          style={styles.input}
-          placeholder="Nota para administrador"
-          value={notaAdmin}
-          onChange={(e) => setNotaAdmin(e.target.value)}
-        />
+            <button style={styles.boton} onClick={guardarCambios}>
+              Guardar cambios
+            </button>
+          </>
+        )}
 
-        <select
-          style={styles.input}
-          value={nuevoEntrenador}
-          onChange={(e) => setNuevoEntrenador(e.target.value)}
-        >
-          <option value="">Cambiar entrenador</option>
+        {modo === 'cambiar' && (
+          <>
+            <h3>Gestión deportiva</h3>
 
-          {entrenadores.map((ent) => (
-            <option key={ent.id} value={ent.id}>
-              {ent.nombres_completos}
-            </option>
-          ))}
-        </select>
+            <textarea
+              style={styles.input}
+              placeholder="Motivo del cambio"
+              value={motivoMovimiento}
+              onChange={(e) => setMotivoMovimiento(e.target.value)}
+            />
 
-        <button style={styles.boton} onClick={cambiarEntrenador}>
-          Cambiar entrenador
-        </button>
+            <textarea
+              style={styles.input}
+              placeholder="Nota para administrador"
+              value={notaAdmin}
+              onChange={(e) => setNotaAdmin(e.target.value)}
+            />
 
-        <h3>Estado</h3>
+            <select
+              style={styles.input}
+              value={nuevoEntrenador}
+              onChange={(e) => setNuevoEntrenador(e.target.value)}
+            >
+              <option value="">Selecciona nuevo entrenador</option>
 
-        <select
-          style={styles.input}
-          value={form.estado}
-          onChange={(e) => setForm({ ...form, estado: e.target.value })}
-        >
-          <option value="activo">Activo</option>
-          <option value="inactivo">Inactivo</option>
-        </select>
+              {entrenadores.map((ent) => (
+                <option key={ent.id} value={ent.id}>
+                  {ent.nombres_completos}
+                </option>
+              ))}
+            </select>
 
-        <button style={styles.boton} onClick={guardarCambios}>
-          Guardar cambios
-        </button>
+            <button style={styles.boton} onClick={cambiarEntrenador}>
+              Confirmar cambio
+            </button>
+          </>
+        )}
 
-        <button style={styles.botonCancelarFull} onClick={desactivarDeportista}>
-          Inactivar deportista
-        </button>
+        {modo === 'inactivar' && (
+          <>
+            <h3>Inactivación</h3>
+
+            <textarea
+              style={styles.input}
+              placeholder="Motivo de inactivación"
+              value={motivoMovimiento}
+              onChange={(e) => setMotivoMovimiento(e.target.value)}
+            />
+
+            <textarea
+              style={styles.input}
+              placeholder="Nota para administrador"
+              value={notaAdmin}
+              onChange={(e) => setNotaAdmin(e.target.value)}
+            />
+
+            <button
+              style={styles.botonCancelarFull}
+              onClick={desactivarDeportista}
+            >
+              Confirmar inactivación
+            </button>
+          </>
+        )}
       </section>
     </>
   );

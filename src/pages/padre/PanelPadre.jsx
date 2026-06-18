@@ -841,7 +841,6 @@ export default function PanelPadre({ usuario, perfil, setPantalla, setUsuario, s
     );
   }
   
-
   function EventosPadre({ deportista }) {
     const [eventos, setEventos] = useState([]);
     const [historialAsistencia, setHistorialAsistencia] = useState([]);
