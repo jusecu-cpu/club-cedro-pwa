@@ -8,6 +8,7 @@ import AdminAgenda from './AdminAgenda';
 import AdminCarnets from './AdminCarnets';
 import AdminPolizas from './AdminPolizas';
 import AdminMovimientos from './AdminMovimientos';
+import AdminRetiros from './AdminRetiros';
 
 export default function PanelAdmin({ setPantalla, setUsuario, setPerfil }) {
     const [menuAdmin, setMenuAdmin] = useState('dashboard');
@@ -274,6 +275,20 @@ export default function PanelAdmin({ setPantalla, setUsuario, setPerfil }) {
                             🔁 Movimientos
                             </button>   
 
+                            <button
+                            style={
+                                menuAdmin === 'retiros'
+                                ? styles.sidebarBtnActive
+                                : styles.sidebarBtn
+                            }
+                            onClick={() => {
+                                setMenuAdmin('retiros');
+                                setMenuAbierto(false);
+                            }}
+                            >
+                            🚪 Retiros
+                            </button>
+
                     <button
                         style={
                             menuAdmin === 'docs' ? styles.sidebarBtnActive : styles.sidebarBtn
@@ -327,6 +342,7 @@ export default function PanelAdmin({ setPantalla, setUsuario, setPerfil }) {
                 {menuAdmin === 'agenda' && <AdminAgenda />}
                 {menuAdmin === 'polizas' && <AdminPolizas />}
                 {menuAdmin === 'movimientos' && <AdminMovimientos />}
+                {menuAdmin === 'retiros' && <AdminRetiros />}
                 {menuAdmin === 'carnets' && <AdminCarnets />}
                 {menuAdmin === 'sedes' && (
                 <>
