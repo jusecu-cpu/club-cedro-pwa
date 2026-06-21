@@ -10,9 +10,11 @@ export const styles = {
   
     telefono: {
       width: '100%',
-      maxWidth: '430px',
+      maxWidth: 430,
       minHeight: '100vh',
-      background: '#f7f8fb',
+      background: '#f4f7ff',
+      margin: '0 auto',
+      overflow: 'hidden',
     },
   
     loginContainer: {
@@ -160,10 +162,12 @@ export const styles = {
     },
   
     padreContainer: {
+      width: '100%',
+      maxWidth: 430,
       minHeight: '100vh',
-      background: '#f4f6fb',
-      padding: '0 10px 90px',
-      overflowY: 'auto',
+      margin: '0 auto',
+      paddingBottom: 90,
+      background: '#f4f7ff',
     },
   
     padreHeader: {
@@ -269,10 +273,9 @@ export const styles = {
   
     gridResumen: {
       display: 'grid',
-      gridTemplateColumns: '1fr 1fr',
-      gap: '14px',
-      marginTop: '18px',
-      marginBottom: '18px',
+      gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+      gap: 12,
+      marginBottom: 18,
     },
   
     entrenadorCard: {
@@ -329,9 +332,8 @@ export const styles = {
   
     eventosGrid: {
       display: 'grid',
-      gridTemplateColumns: '1fr 1fr',
-      gap: '10px',
-      padding: '0 10px',
+      gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
+      gap: 12,
     },
   
     eventoCard: {
@@ -491,10 +493,12 @@ export const styles = {
       textAlign: 'center',
     },
   
-    dataGrid: {
+    adminCardsGrid: {
       display: 'grid',
-      gridTemplateColumns: '1fr 1fr',
-      gap: '10px',
+      gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+      gap: 14,
+      marginBottom: 18,
+      width: '100%',
     },
   
     dataItem: {
@@ -817,8 +821,8 @@ export const styles = {
     adminCardsGrid: {
       display: 'grid',
       gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
-      gap: '12px',
-      marginBottom: '16px',
+      gap: 12,
+      marginBottom: 16,
     },
   
     adminCard: {
@@ -863,6 +867,8 @@ export const styles = {
       alignItems: 'center',
       borderBottom: '1px solid #edf0f7',
       padding: '12px 0',
+      width: '100%',
+      boxSizing: 'border-box',
     },
   
     adminActions: {
@@ -894,10 +900,10 @@ export const styles = {
     },
   
     adminPage: {
-      minHeight: '100vh',
-      background: '#f4f5fb',
       width: '100%',
-      maxWidth: '430px',
+      minHeight: '100vh',
+      background: '#f4f7ff',
+      overflowX: 'hidden',
     },
   
     adminTopbar: {
@@ -993,8 +999,10 @@ export const styles = {
   
     adminBody: {
       width: '100%',
-      padding: '14px',
-      boxSizing: 'border-box',
+      maxWidth: 1180,
+      margin: '0 auto',
+      padding: '16px',
+      overflowX: 'hidden',
     },
   
     adminOverlay: {

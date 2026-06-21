@@ -20,7 +20,10 @@ export default function PanelAdmin({ setPantalla, setUsuario, setPerfil }) {
         deportistas: 0,
         categorias: 0,
         solicitudes: 0,
-    });
+        activas: 0,
+        inactivas: 0,
+        sinEntrenador: 0,
+      });
 
     const [porSede, setPorSede] = useState([]);
     const [porEntrenador, setPorEntrenador] = useState([]);
@@ -34,78 +37,115 @@ export default function PanelAdmin({ setPantalla, setUsuario, setPerfil }) {
 
     async function cargarAdmin() {
         const [
-            sedesRes,
-            entrenadoresRes,
-            deportistasRes,
-            categoriasRes,
-            solicitudesRes,
-            deportistasData,
-            entrenadoresData,
-            categoriasData,
+          sedesRes,
+          entrenadoresRes,
+          deportistasRes,
+          categoriasRes,
+          solicitudesRes,
+          deportistasData,
+          entrenadoresData,
+          categoriasData,
+          sedesData,
         ] = await Promise.all([
-            supabase.from('sedes').select('*', { count: 'exact', head: true }),
-            supabase.from('entrenadores').select('*', { count: 'exact', head: true }),
-            supabase.from('deportistas').select('*', { count: 'exact', head: true }),
-            supabase.from('categorias').select('*', { count: 'exact', head: true }),
-            supabase
-                .from('solicitudes_inscripcion')
-                .select('*', { count: 'exact', head: true }),
-
-            supabase.from('deportistas').select(`
-          id,
-          deportista_nombre,
-          sede:sedes(nombre_corto),
-          entrenador:entrenadores(nombres_completos),
-          categoria:categorias(categoria)
-        `),
-
-            supabase.from('entrenadores').select('*').order('nombres_completos'),
-
-            supabase.from('categorias').select('*').order('categoria'),
+          supabase.from('sedes').select('*', { count: 'exact', head: true }),
+          supabase.from('entrenadores').select('*', { count: 'exact', head: true }),
+          supabase.from('deportistas').select('*', { count: 'exact', head: true }),
+          supabase.from('categorias').select('*', { count: 'exact', head: true }),
+          supabase.from('solicitudes_inscripcion').select('*', { count: 'exact', head: true }),
+      
+          supabase.from('deportistas').select(`
+            id,
+            deportista_nombre,
+            estado,
+            sede_id,
+            entrenador_id,
+            categoria_id
+          `),
+      
+          supabase.from('entrenadores').select('*').order('nombres_completos'),
+          supabase.from('categorias').select('*').order('categoria'),
+          supabase.from('sedes').select('*').order('nombre_corto'),
         ]);
-
+      
+        const deportistas = deportistasData.data || [];
+      
+        const activas = deportistas.filter((d) => {
+          const estado = String(d.estado || '').toLowerCase().trim();
+          return estado === 'activo' || estado === 'activa' || estado === '';
+        }).length;
+      
+        const inactivas = deportistas.filter((d) => {
+          const estado = String(d.estado || '').toLowerCase().trim();
+          return estado === 'inactivo' || estado === 'inactiva';
+        }).length;
+      
+        const sinEntrenador = deportistas.filter((d) => !d.entrenador_id).length;
+      
         setResumen({
-            sedes: sedesRes.count || 0,
-            entrenadores: entrenadoresRes.count || 0,
-            deportistas: deportistasRes.count || 0,
-            categorias: categoriasRes.count || 0,
-            solicitudes: solicitudesRes.count || 0,
+          sedes: sedesRes.count || 0,
+          entrenadores: entrenadoresRes.count || 0,
+          deportistas: deportistasRes.count || 0,
+          categorias: categoriasRes.count || 0,
+          solicitudes: solicitudesRes.count || 0,
+          activas,
+          inactivas,
+          sinEntrenador,
         });
-
+      
         setEntrenadores(entrenadoresData.data || []);
         setCategorias(categoriasData.data || []);
-
-        const deportistas = deportistasData.data || [];
-
-        setPorSede(agrupar(deportistas, (d) => d.sede?.nombre_corto || 'Sin sede'));
-
-        setPorEntrenador(
-            agrupar(
-                deportistas,
-                (d) => d.entrenador?.nombres_completos || 'Sin entrenador'
-            )
-        );
-
-        setPorCategoria(
-            agrupar(deportistas, (d) => d.categoria?.categoria || 'Sin categoría')
-        );
-    }
-
-    function agrupar(lista, campoFn) {
-        const mapa = {};
-
-        lista.forEach((item) => {
-            const key = campoFn(item);
-            mapa[key] = (mapa[key] || 0) + 1;
+      
+        const entrenadoresMap = {};
+        (entrenadoresData.data || []).forEach((e) => {
+          entrenadoresMap[e.id] = e.nombres_completos;
         });
+      
+        const categoriasMap = {};
+        (categoriasData.data || []).forEach((c) => {
+          categoriasMap[c.id] = c.categoria;
+        });
+      
+        const sedesMap = {};
+        (sedesData.data || []).forEach((s) => {
+          sedesMap[s.id] = s.nombre_corto;
+        });
+      
+        setPorSede(
+          agrupar(deportistas, (d) => sedesMap[d.sede_id] || 'Sin sede')
+        );
+      
+        setPorEntrenador(
+          agrupar(
+            deportistas,
+            (d) => entrenadoresMap[d.entrenador_id] || 'Sin entrenador'
+          )
+        );
+      
+        setPorCategoria(
+          agrupar(
+            deportistas,
+            (d) => categoriasMap[d.categoria_id] || 'Sin categoría'
+          )
+        );
+      }
 
+
+      function agrupar(lista, campoFn) {
+        const mapa = {};
+      
+        lista.forEach((item) => {
+          const key = campoFn(item);
+          mapa[key] = (mapa[key] || 0) + 1;
+        });
+      
         return Object.entries(mapa)
-  .map(([nombre, total]) => ({
-    nombre,
-    total,
-  }))
-  .sort((a, b) => b.total - a.total);
-    }
+          .map(([nombre, total]) => ({
+            nombre,
+            total,
+          }))
+          .sort((a, b) => b.total - a.total);
+      }
+
 
     async function cerrarSesion() {
         await supabase.auth.signOut();
@@ -368,43 +408,67 @@ function AdminDashboard({
   }) {
     return (
         <>
-            <h1 style={styles.adminTitle}>Dashboard</h1>
+            <div
+            style={{
+                marginBottom: 20,
+            }}
+            >
+            <h1 style={styles.adminTitle}>
+                Dashboard Ejecutivo
+            </h1>
+
+            <p
+                style={{
+                color: '#666',
+                marginTop: -10,
+                }}
+            >
+                Resumen general Club Cedro
+            </p>
+            </div>
 
             <section style={styles.adminCardsGrid}>
             <AdminCard
-            titulo="Sedes"
-            valor={resumen.sedes}
-            onClick={() => setMenuAdmin('sedes')}
+                titulo="Activas"
+                valor={resumen.activas}
+                onClick={() => setMenuAdmin('deportistas')}
             />
 
             <AdminCard
-            titulo="Entrenadores"
-            valor={resumen.entrenadores}
-            onClick={() => setMenuAdmin('entrenadores')}
+                titulo="Inactivas"
+                valor={resumen.inactivas}
+                onClick={() => setMenuAdmin('retiros')}
             />
 
             <AdminCard
-            titulo="Deportistas"
-            valor={resumen.deportistas}
-            onClick={() => setMenuAdmin('deportistas')}
+                titulo="Solicitudes"
+                valor={resumen.solicitudes}
+                onClick={() => setMenuAdmin('aprobaciones')}
             />
 
             <AdminCard
-            titulo="Categorías"
-            valor={resumen.categorias}
-            onClick={() => setMenuAdmin('categorias')}
+                titulo="Sin entrenador"
+                valor={resumen.sinEntrenador}
+                onClick={() => setMenuAdmin('deportistas')}
             />
 
             <AdminCard
-            titulo="Solicitudes"
-            valor={resumen.solicitudes}
-            onClick={() => setMenuAdmin('aprobaciones')}
+                titulo="Sedes"
+                valor={resumen.sedes}
+                onClick={() => setMenuAdmin('sedes')}
+            />
+
+            <AdminCard
+                titulo="Entrenadores"
+                valor={resumen.entrenadores}
+                onClick={() => setMenuAdmin('entrenadores')}
             />
             </section>
-
+            <div className="admin-dashboard-tables">
             <AdminTabla titulo="Deportistas por sede" data={porSede} />
             <AdminTabla titulo="Deportistas por entrenador" data={porEntrenador} />
             <AdminTabla titulo="Deportistas por categoría" data={porCategoria} />
+            </div>
         </>
     );
 }
@@ -412,51 +476,114 @@ function AdminDashboard({
 function AdminCard({ titulo, valor, onClick }) {
     return (
       <div
-        style={{
-          ...styles.adminCard,
-          cursor: onClick ? 'pointer' : 'default',
-        }}
         onClick={onClick}
+        style={{
+          background: 'linear-gradient(135deg, #072c8f 0%, #1f4ed8 100%)',
+          color: '#fff',
+          borderRadius: 18,
+          padding: 14,
+          cursor: onClick ? 'pointer' : 'default',
+          boxShadow: '0 10px 22px rgba(7,44,143,.18)',
+          minHeight: 96,
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'space-between',
+          overflow: 'hidden',
+        }}
       >
-        <p>{titulo}</p>
-        <h2>{valor}</h2>
+        <span style={{ fontSize: 12, fontWeight: 800 }}>{titulo}</span>
+  
+        <h2
+          style={{
+            margin: 0,
+            fontSize: 30,
+            fontWeight: 900,
+            lineHeight: 1,
+            color: '#fff',
+          }}
+        >
+          {valor}
+        </h2>
       </div>
     );
   }
 
-function AdminTabla({ titulo, data }) {
+
+  function AdminTabla({ titulo, data }) {
     return (
-        <section style={styles.adminPanel}>
-            <h2>{titulo}</h2>
-
-            <table style={styles.adminTable}>
-                <thead>
-                    <tr>
-                        <th style={styles.adminTh}>Nombre</th>
-                        <th style={styles.adminTh}>Total</th>
-                    </tr>
-                </thead>
-
-                <tbody>
-                    {data.length === 0 && (
-                        <tr>
-                            <td style={styles.adminTd} colSpan="2">
-                                Sin datos
-                            </td>
-                        </tr>
-                    )}
-
-                    {data.map((item) => (
-                        <tr key={item.nombre}>
-                            <td style={styles.adminTd}>{item.nombre}</td>
-                            <td style={styles.adminTd}>{item.total}</td>
-                        </tr>
-                    ))}
-                </tbody>
-            </table>
-        </section>
+      <section
+        style={{
+          ...styles.adminPanel,
+          overflowX: 'auto',
+        }}
+      >
+        <h2
+          style={{
+            fontSize: 18,
+            color: '#072c8f',
+            marginBottom: 12,
+          }}
+        >
+          {titulo}
+        </h2>
+  
+        <table
+          style={{
+            width: '100%',
+            borderCollapse: 'collapse',
+            fontSize: 13,
+          }}
+        >
+          <thead>
+            <tr>
+              <th style={{ textAlign: 'left', color: '#072c8f', padding: 8 }}>
+                #
+              </th>
+              <th style={{ textAlign: 'left', color: '#072c8f', padding: 8 }}>
+                Nombre
+              </th>
+              <th style={{ textAlign: 'right', color: '#072c8f', padding: 8 }}>
+                Total
+              </th>
+            </tr>
+          </thead>
+  
+          <tbody>
+            {data.length === 0 && (
+              <tr>
+                <td style={styles.adminTd} colSpan="3">
+                  Sin datos
+                </td>
+              </tr>
+            )}
+  
+                {data.slice(0, 10).map((item, index) => (
+                  <tr key={item.nombre}>
+                <td style={{ padding: 8 }}>{index + 1}</td>
+                <td style={{ padding: 8 }}>{item.nombre}</td>
+                <td style={{ padding: 8, textAlign: 'right', fontWeight: 700 }}>
+                  {item.total}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {data.length > 10 && (
+  <p
+    style={{
+      textAlign: 'center',
+      color: '#072c8f',
+      fontWeight: 800,
+      fontSize: 13,
+      marginTop: 12,
+    }}
+  >
+    Mostrando 10 de {data.length}
+  </p>
+)}
+      </section>
     );
-}
+  }
 
 function AdminAprobaciones() {
     const [solicitudes, setSolicitudes] = useState([]);
