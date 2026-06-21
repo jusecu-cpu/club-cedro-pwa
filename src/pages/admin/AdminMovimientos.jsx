@@ -36,13 +36,19 @@ export default function AdminMovimientos() {
 
     if (error) {
       console.error(error);
-      alert('No se pudieron cargar los movimientos.');
+      alert(JSON.stringify(error, null, 2));
       setMovimientos([]);
     } else {
       setMovimientos(data || []);
     }
 
     setCargando(false);
+  }
+
+  function tipoTexto(tipo) {
+    if (tipo === 'cambio_entrenador') return 'Cambio de entrenador';
+    if (tipo === 'inactivacion') return 'Inactivación';
+    return tipo || 'Movimiento';
   }
 
   return (
@@ -69,30 +75,33 @@ export default function AdminMovimientos() {
                   {mov.deportista?.deportista_documento || 'Sin documento'}
                 </p>
 
-                <small>
-                  Tipo: {mov.tipo_movimiento}
-                  <br />
-                  Fecha: {new Date(mov.created_at).toLocaleString('es-CO')}
-                </small>
+                <p>
+                  <strong>Movimiento:</strong> {tipoTexto(mov.tipo_movimiento)}
+                </p>
+
+                <p>
+                  <strong>Origen:</strong>{' '}
+                  {mov.entrenador_origen?.nombres_completos || 'No aplica'}
+                </p>
+
+                <p>
+                  <strong>Destino:</strong>{' '}
+                  {mov.entrenador_destino?.nombres_completos || 'No aplica'}
+                </p>
 
                 <p>
                   <strong>Motivo:</strong> {mov.motivo || 'Sin motivo'}
                 </p>
 
-                {mov.nota_admin && (
-                  <p>
-                    <strong>Nota admin:</strong> {mov.nota_admin}
-                  </p>
-                )}
+                <p>
+                  <strong>Nota admin:</strong> {mov.nota_admin || 'Sin nota'}
+                </p>
 
                 <small>
-                  Origen:{' '}
-                  {mov.entrenador_origen?.nombres_completos ||
-                    'Sin entrenador'}
-                  <br />
-                  Destino:{' '}
-                  {mov.entrenador_destino?.nombres_completos ||
-                    'No aplica'}
+                  Fecha:{' '}
+                  {mov.created_at
+                    ? new Date(mov.created_at).toLocaleString('es-CO')
+                    : 'Sin fecha'}
                 </small>
               </div>
             </div>

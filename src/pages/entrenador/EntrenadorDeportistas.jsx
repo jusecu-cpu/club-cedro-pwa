@@ -18,13 +18,28 @@ export default function EntrenadorDeportistas({ deportistas, recargar }) {
   }
 
   const totalDeportistas = deportistas.length;
-  const activas = deportistas.filter((dep) => dep.estado === 'activo').length;
-  const inactivas = deportistas.filter((dep) => dep.estado === 'inactivo').length;
+  function normalizarEstado(valor) {
+    return String(valor || '')
+      .trim()
+      .toLowerCase();
+  }
+  
+  const activas = deportistas.filter((dep) => {
+    const estado = normalizarEstado(dep.estado);
+    return estado === 'activo' || estado === 'activa' || estado === '';
+  }).length;
+  
+  const inactivas = deportistas.filter((dep) => {
+    const estado = normalizarEstado(dep.estado);
+    return estado === 'inactivo' || estado === 'inactiva';
+  }).length;
 
   const sinEquipo = deportistas.filter((dep) => {
-    const equipoActivo = dep.equipo_deportista?.find(
-      (item) => item.estado === 'activo'
-    );
+    const equipoActivo = dep.equipo_deportista?.find((item) => {
+      const estado = normalizarEstado(item.estado);
+      return estado === 'activo' || estado === 'activa';
+    });
+  
     return !equipoActivo;
   }).length;
 
@@ -316,16 +331,24 @@ function EditarDeportista({ deportista, modo, volver, recargar }) {
       alert(error.message);
       return;
     }
+    
+    const { error: errorMovimiento } = await supabase
+  .from('deportista_movimientos')
+  .insert({
+    deportista_id: deportista.id,
+    entrenador_origen_id: deportista.entrenador_id || null,
+    entrenador_destino_id: nuevoEntrenador,
+    tipo_movimiento: 'cambio_entrenador',
+    motivo: motivoMovimiento,
+    nota_admin: notaAdmin,
+  });
 
-    await supabase.from('deportista_movimientos').insert({
-      deportista_id: deportista.id,
-      entrenador_origen_id: deportista.entrenador_id || null,
-      entrenador_destino_id: nuevoEntrenador,
-      tipo_movimiento: 'cambio_entrenador',
-      motivo: motivoMovimiento,
-      nota_admin: notaAdmin,
-    });
-
+if (errorMovimiento) {
+  console.error('ERROR GUARDANDO MOVIMIENTO:', errorMovimiento);
+  alert(JSON.stringify(errorMovimiento, null, 2));
+  return;
+}
+    
     alert('Entrenador actualizado.');
     recargar();
     volver();
@@ -344,9 +367,9 @@ function EditarDeportista({ deportista, modo, volver, recargar }) {
     if (!confirmar) return;
 
     const { error } = await supabase
-      .from('deportistas')
-      .update({
-        estado: 'inactivo',
+    .from('deportistas')
+    .update({
+      estado: 'inactivo',
         motivo_inactivacion: motivoMovimiento,
         nota_admin: notaAdmin,
         fecha_inactivacion: new Date().toISOString(),
@@ -358,18 +381,25 @@ function EditarDeportista({ deportista, modo, volver, recargar }) {
       return;
     }
 
-    await supabase.from('deportista_movimientos').insert({
-      deportista_id: deportista.id,
-      entrenador_origen_id: deportista.entrenador_id || null,
-      tipo_movimiento: 'inactivacion',
-      motivo: motivoMovimiento,
-      nota_admin: notaAdmin,
-    });
+    const { error: errorMovimiento } = await supabase
+  .from('deportista_movimientos')
+  .insert({
+    deportista_id: deportista.id,
+    entrenador_origen_id: deportista.entrenador_id || null,
+    tipo_movimiento: 'inactivacion',
+    motivo: motivoMovimiento,
+    nota_admin: notaAdmin,
+  });
 
-    alert('Deportista inactivada.');
-    recargar();
-    volver();
-  }
+if (errorMovimiento) {
+  console.error('ERROR GUARDANDO MOVIMIENTO:', errorMovimiento);
+  alert(JSON.stringify(errorMovimiento, null, 2));
+    return;
+}
+alert('Deportista inactivada.');
+recargar();
+volver();
+}
 
   return (
     <>
