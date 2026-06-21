@@ -22,7 +22,10 @@ export default function AdminRetiros() {
         estado,
         motivo_inactivacion,
         nota_admin,
-        fecha_inactivacion
+        fecha_inactivacion,
+        sede_id,
+        categoria_id,
+        entrenador_id
       `)
       .in('estado', ['inactivo', 'inactiva', 'Inactivo', 'Inactiva'])
       .order('fecha_inactivacion', { ascending: false });
@@ -31,10 +34,49 @@ export default function AdminRetiros() {
       console.error('ERROR RETIROS:', error);
       alert(JSON.stringify(error, null, 2));
       setDeportistas([]);
-    } else {
-      setDeportistas(data || []);
+      setCargando(false);
+      return;
     }
 
+    const sedeIds = [...new Set((data || []).map((d) => d.sede_id).filter(Boolean))];
+    const categoriaIds = [...new Set((data || []).map((d) => d.categoria_id).filter(Boolean))];
+    const entrenadorIds = [...new Set((data || []).map((d) => d.entrenador_id).filter(Boolean))];
+
+    const { data: sedesData } = sedeIds.length
+      ? await supabase.from('sedes').select('id, nombre_corto').in('id', sedeIds)
+      : { data: [] };
+
+    const { data: categoriasData } = categoriaIds.length
+      ? await supabase.from('categorias').select('id, categoria').in('id', categoriaIds)
+      : { data: [] };
+
+    const { data: entrenadoresData } = entrenadorIds.length
+      ? await supabase.from('entrenadores').select('id, nombres_completos').in('id', entrenadorIds)
+      : { data: [] };
+
+    const sedesMap = {};
+    (sedesData || []).forEach((s) => {
+      sedesMap[s.id] = s.nombre_corto;
+    });
+
+    const categoriasMap = {};
+    (categoriasData || []).forEach((c) => {
+      categoriasMap[c.id] = c.categoria;
+    });
+
+    const entrenadoresMap = {};
+    (entrenadoresData || []).forEach((e) => {
+      entrenadoresMap[e.id] = e.nombres_completos;
+    });
+
+    const enriquecidos = (data || []).map((dep) => ({
+      ...dep,
+      sede_nombre: sedesMap[dep.sede_id] || 'Sin sede',
+      categoria_nombre: categoriasMap[dep.categoria_id] || 'Sin categoría',
+      entrenador_nombre: entrenadoresMap[dep.entrenador_id] || 'Sin entrenador',
+    }));
+
+    setDeportistas(enriquecidos);
     setCargando(false);
   }
 
@@ -55,7 +97,15 @@ export default function AdminRetiros() {
               <div>
                 <strong>{dep.deportista_nombre}</strong>
 
-                <p>Documento: {dep.deportista_documento || 'Sin documento'}</p>
+                <p>
+                  {dep.categoria_nombre} · {dep.sede_nombre}
+                </p>
+
+                <small>
+                  Documento: {dep.deportista_documento || 'Sin documento'}
+                  <br />
+                  Entrenador: {dep.entrenador_nombre}
+                </small>
 
                 <p>
                   <strong>Motivo:</strong>{' '}
