@@ -6,13 +6,13 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      registerType: 'autoUpdate',
+      registerType: 'prompt',
       manifest: {
         name: 'Club Cedro Deportivo',
         short_name: 'Club Cedro',
         theme_color: '#072c8f',
         background_color: '#f4f7ff',
-        display: 'standalone',
+        display: 'standalo  ne',
         start_url: '/',
         icons: [
           {
