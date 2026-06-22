@@ -203,6 +203,7 @@ export default function PanelAdmin({ setPantalla, setUsuario, setPerfil }) {
                         📊 Dashboard
                     </button>
 
+
                     <button
                         style={
                             menuAdmin === 'aprobaciones'
@@ -379,6 +380,9 @@ export default function PanelAdmin({ setPantalla, setUsuario, setPerfil }) {
                 )}
 
                 {menuAdmin === 'aprobaciones' && <AdminAprobaciones />}
+                {menuAdmin === 'nuevoDeportista' && (
+                <RegistroDeportistaAdmin />
+                )}
                                
                 {menuAdmin === 'entrenadores' && (
                     <AdminEntrenadores

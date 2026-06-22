@@ -8,6 +8,8 @@ export default function AdminDeportistas() {
   const [loading, setLoading] = useState(false);
   const [seleccionado, setSeleccionado] = useState(null);
   const [guardando, setGuardando] = useState(false);
+  const [filtroDocumento, setFiltroDocumento] = useState('');
+  const [filtroEntrenador, setFiltroEntrenador] = useState('');
 
   useEffect(() => {
     cargarDeportistas();
@@ -17,9 +19,14 @@ export default function AdminDeportistas() {
     setLoading(true);
 
     const { data, error } = await supabase
-      .from('deportistas')
-      .select('*')
-      .order('deportista_nombre', { ascending: true });
+  .from('deportistas')
+  .select(`
+    *,
+    entrenador:entrenadores(
+      nombres_completos
+    )
+  `)
+  .order('deportista_nombre', { ascending: true });
 
     if (error) {
       console.error(error);
@@ -77,17 +84,20 @@ export default function AdminDeportistas() {
       [campo]: valor,
     });
   }
-
   const deportistasFiltrados = deportistas.filter((dep) => {
-    const texto = `
-      ${dep.deportista_nombre || ''}
-      ${dep.deportista_documento || ''}
-      ${dep.acudiente_nombre || ''}
-      ${dep.acudiente_correo || ''}
-    `.toLowerCase();
-
-    return texto.includes(busqueda.toLowerCase());
+    const nombre = String(dep.deportista_nombre || '').toLowerCase();
+    const documento = String(dep.deportista_documento || '');
+    const entrenador = String(
+      dep.entrenador?.nombres_completos || ''
+    ).toLowerCase();
+  
+    return (
+      nombre.includes(busqueda.toLowerCase()) &&
+      documento.includes(filtroDocumento) &&
+      entrenador.includes(filtroEntrenador.toLowerCase())
+    );
   });
+
 
   if (seleccionado) {
     return (
@@ -155,12 +165,42 @@ export default function AdminDeportistas() {
       <h1 style={styles.adminTitle}>Deportistas</h1>
 
       <section style={styles.adminPanel}>
-        <input
-          style={styles.input}
-          placeholder="Buscar por nombre, documento o acudiente..."
-          value={busqueda}
-          onChange={(e) => setBusqueda(e.target.value)}
-        />
+       
+<div
+  style={{
+    display: 'grid',
+    gridTemplateColumns: '1fr 1fr 1fr auto',
+    gap: 12,
+    marginBottom: 20,
+  }}
+>
+  <input
+    style={styles.input}
+    placeholder="Nombre"
+    value={busqueda}
+    onChange={(e) => setBusqueda(e.target.value)}
+  />
+
+  <input
+    style={styles.input}
+    placeholder="Documento"
+    value={filtroDocumento}
+    onChange={(e) => setFiltroDocumento(e.target.value)}
+  />
+
+  <input
+    style={styles.input}
+    placeholder="Entrenador"
+    value={filtroEntrenador}
+    onChange={(e) => setFiltroEntrenador(e.target.value)}
+  />
+
+  <button
+    style={styles.adminSmallBtn}
+  >
+    + Nuevo
+  </button>
+</div>
 
         {loading && <p>Cargando deportistas...</p>}
 
@@ -168,24 +208,59 @@ export default function AdminDeportistas() {
           <p>No se encontraron deportistas.</p>
         )}
 
-        {!loading &&
-          deportistasFiltrados.map((dep) => (
-            <div
-              key={dep.id}
-              style={styles.adminListItem}
-              onClick={() => setSeleccionado(dep)}
-            >
-              <div>
-                <strong>{dep.deportista_nombre || 'Sin nombre'}</strong>
-                <p>Documento: {dep.deportista_documento || '-'}</p>
-                <small>
-                  Acudiente: {dep.acudiente_nombre || '-'} · Estado: {dep.estado || '-'}
-                </small>
-              </div>
+        
+<table
+  style={{
+    width: '100%',
+    borderCollapse: 'collapse',
+    marginTop: 16,
+  }}
+>
+  <thead>
+    <tr>
+    <th style={styles.adminTh}>Foto</th>
+    <th style={styles.adminTh}>Nombre</th>
+    <th style={styles.adminTh}>Documento</th>
+    <th style={styles.adminTh}>Entrenador</th>
+    <th style={styles.adminTh}>Acciones</th>
+    </tr>
+  </thead>
 
-              <button style={styles.adminSmallBtn}>Ver / Editar</button>
-            </div>
-          ))}
+  <tbody>
+    {deportistasFiltrados.map((dep) => (
+      <tr key={dep.id}>
+        <td>
+          <img
+            src={dep.foto_url || '/avatar.png'}
+            style={{
+              width: 45,
+              height: 45,
+              borderRadius: '50%',
+              objectFit: 'cover'
+            }}
+          />
+        </td>
+
+        <td>{dep.deportista_nombre}</td>
+
+        <td>{dep.deportista_documento}</td>
+
+        <td>
+          {dep.entrenador?.nombres_completos || '-'}
+        </td>
+
+        <td>
+          <button
+            style={styles.adminSmallBtn}
+            onClick={() => setSeleccionado(dep)}
+          >
+            Ver / Editar
+          </button>
+        </td>
+      </tr>
+    ))}
+  </tbody>
+</table>
       </section>
     </>
   );
