@@ -901,15 +901,17 @@ export const styles = {
   
     adminPage: {
       width: '100%',
-      maxWidth: '100vw',
       minHeight: '100vh',
       background: '#f4f7ff',
+      display: 'flex',
       overflowX: 'hidden',
     },
-  
+    
     adminTopbar: {
-      width: '100%',
-      maxWidth: '100%',
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
       height: 84,
       background: '#072c8f',
       borderBottomLeftRadius: 18,
@@ -918,7 +920,7 @@ export const styles = {
       alignItems: 'center',
       justifyContent: 'space-between',
       padding: '0 18px',
-      boxSizing: 'border-box',
+      zIndex: 20,
     },
   
     menuHamburguesa: {
@@ -947,20 +949,14 @@ export const styles = {
   
     sidebarFloating: {
       position: 'fixed',
-      top: '95px',
-      left: '50%',
-      transform: 'translateX(-50%)',
-      width: 'calc(100% - 32px)',
-      maxWidth: '390px',
-      background: '#002366',
-      padding: '18px',
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '10px',
-      zIndex: 999,
-      borderRadius: '18px',
-      boxShadow: '0 12px 30px rgba(0,0,0,0.25)',
-      boxSizing: 'border-box',
+      top: 0,
+      left: 0,
+      width: 260,
+      height: '100vh',
+      background: '#111827',
+      padding: '22px 14px',
+      zIndex: 30,
+      overflowY: 'auto',
     },
   
     sidebarBtn: {
@@ -1000,7 +996,7 @@ export const styles = {
       width: '100%',
       maxWidth: 1180,
       margin: '0 auto',
-      padding: '14px',
+      padding: '110px 14px 24px',
       overflowX: 'hidden',
       boxSizing: 'border-box',
     },

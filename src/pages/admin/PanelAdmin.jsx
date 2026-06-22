@@ -12,8 +12,7 @@ import AdminRetiros from './AdminRetiros';
 
 export default function PanelAdmin({ setPantalla, setUsuario, setPerfil }) {
     const [menuAdmin, setMenuAdmin] = useState('dashboard');
-    const [menuAbierto, setMenuAbierto] = useState(false);
-
+    const [menuAbierto, setMenuAbierto] = useState(window.innerWidth >= 900);
     const [resumen, setResumen] = useState({
         sedes: 0,
         entrenadores: 0,
@@ -34,6 +33,16 @@ export default function PanelAdmin({ setPantalla, setUsuario, setPerfil }) {
     useEffect(() => {
         cargarAdmin();
     }, []);
+
+    useEffect(() => {
+        function ajustarMenu() {
+          setMenuAbierto(window.innerWidth >= 900);
+        }
+      
+        window.addEventListener('resize', ajustarMenu);
+        return () => window.removeEventListener('resize', ajustarMenu);
+      }, []);
+      
 
     async function cargarAdmin() {
         const [
@@ -156,7 +165,10 @@ export default function PanelAdmin({ setPantalla, setUsuario, setPerfil }) {
 
     return (
         <main style={styles.adminPage}>
-            <header style={styles.adminTopbar}>
+                <header
+                className={menuAbierto ? 'admin-topbar-with-sidebar' : ''}
+                style={styles.adminTopbar}
+                >                
                 <button
                     style={styles.menuHamburguesa}
                     onClick={() => setMenuAbierto(!menuAbierto)}
@@ -347,8 +359,10 @@ export default function PanelAdmin({ setPantalla, setUsuario, setPerfil }) {
                 </aside>
             )}
 
-            <section style={styles.adminBody}>
-                {menuAdmin === 'dashboard' && (
+                <section
+                className={menuAbierto ? 'admin-with-sidebar' : ''}
+                style={styles.adminBody}
+>                {menuAdmin === 'dashboard' && (
                     <AdminDashboard
                     resumen={resumen}
                     porSede={porSede}
