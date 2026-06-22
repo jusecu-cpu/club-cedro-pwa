@@ -1,12 +1,11 @@
 
 export const styles = {
-    app: {
-      minHeight: '100vh',
-      background: '#eef2f7',
-      display: 'flex',
-      justifyContent: 'center',
-      fontFamily: 'Arial',
-    },
+  app: {
+    width: '100%',
+    minHeight: '100vh',
+    background: '#f4f7ff',
+    overflowX: 'hidden',
+  },
   
     telefono: {
       width: '100%',
@@ -495,8 +494,8 @@ export const styles = {
   
     adminCardsGrid: {
       display: 'grid',
-      gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
-      gap: 14,
+      gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+      gap: 12,
       marginBottom: 18,
       width: '100%',
     },
@@ -664,13 +663,14 @@ export const styles = {
   
     input: {
       width: '100%',
-      padding: '12px',
-      borderRadius: '12px',
-      border: '1px solid #d7def0',
-      background: '#ffffff',
-      color: '#082567',
-      fontSize: '15px',
+      maxWidth: '100%',
+      boxSizing: 'border-box',
+      border: 'none',
+      borderBottom: '1px solid #d8dceb',
+      padding: '14px 12px',
+      fontSize: 16,
       outline: 'none',
+      background: '#fff',
     },
   
     legalRow: {
@@ -901,24 +901,23 @@ export const styles = {
   
     adminPage: {
       width: '100%',
+      maxWidth: '100vw',
       minHeight: '100vh',
       background: '#f4f7ff',
       overflowX: 'hidden',
     },
   
     adminTopbar: {
-      background: '#002366',
-      height: '82px',
-      borderBottomLeftRadius: '18px',
-      borderBottomRightRadius: '18px',
+      width: '100%',
+      maxWidth: '100%',
+      height: 84,
+      background: '#072c8f',
+      borderBottomLeftRadius: 18,
+      borderBottomRightRadius: 18,
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
-      padding: '0 20px',
-      position: 'sticky',
-      top: 0,
-      zIndex: 100,
-      width: '100%',
+      padding: '0 18px',
       boxSizing: 'border-box',
     },
   
@@ -1001,10 +1000,11 @@ export const styles = {
       width: '100%',
       maxWidth: 1180,
       margin: '0 auto',
-      padding: '16px',
+      padding: '14px',
       overflowX: 'hidden',
+      boxSizing: 'border-box',
     },
-  
+
     adminOverlay: {
       position: 'fixed',
       inset: 0,

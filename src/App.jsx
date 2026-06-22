@@ -58,68 +58,64 @@ function App() {
   const [usuario, setUsuario] = useState(null);
   const [perfil, setPerfil] = useState(null);
 
-  return (
-    <div style={styles.app}>
-      <div style={pantalla === 'admin' ? styles.adminShell : styles.telefono}>
-        {pantalla === 'login' && (
+      return (
+      <div style={styles.app}>
+        {pantalla === 'login' ? (
           <Login
             setPantalla={setPantalla}
             setUsuario={setUsuario}
             setPerfil={setPerfil}
           />
+        ) : (
+          <div style={pantalla === 'admin' ? styles.adminShell : styles.telefono}>
+            {pantalla === 'activar' && <ActivarCuenta setPantalla={setPantalla} />}
+    
+            {pantalla === 'crear-password' && (
+              <CrearPassword
+                setPantalla={setPantalla}
+                setUsuario={setUsuario}
+                setPerfil={setPerfil}
+              />
+            )}
+    
+            {pantalla === 'registro' && (
+              <RegistroInscripcion setPantalla={setPantalla} />
+            )}
+    
+            {pantalla === 'ok' && <SolicitudEnviada setPantalla={setPantalla} />}
+    
+            {pantalla === 'admin' && (
+              <PanelAdmin
+                setPantalla={setPantalla}
+                setUsuario={setUsuario}
+                setPerfil={setPerfil}
+              />
+            )}
+    
+            {pantalla === 'padre' && (
+              <PanelPadre
+                usuario={usuario}
+                perfil={perfil}
+                setPantalla={setPantalla}
+                setUsuario={setUsuario}
+                setPerfil={setPerfil}
+              />
+            )}
+    
+            {pantalla === 'entrenador' && (
+              <PanelEntrenador
+                usuario={usuario}
+                perfil={perfil}
+                setPantalla={setPantalla}
+                setUsuario={setUsuario}
+                setPerfil={setPerfil}
+              />
+            )}
+          </div>
         )}
-
-        {pantalla === 'activar' && (
-          <ActivarCuenta
-            setPantalla={setPantalla}
-          />
-        )}
-
-        {pantalla === 'crear-password' && (
-          <CrearPassword
-            setPantalla={setPantalla}
-            setUsuario={setUsuario}
-            setPerfil={setPerfil}
-          />
-        )}
-
-        {pantalla === 'registro' && (
-          <RegistroInscripcion setPantalla={setPantalla} />
-        )}
-
-        {pantalla === 'ok' && <SolicitudEnviada setPantalla={setPantalla} />}
-
-        {pantalla === 'admin' && (
-          <PanelAdmin
-            setPantalla={setPantalla}
-            setUsuario={setUsuario}
-            setPerfil={setPerfil}
-          />
-        )}
-
-        {pantalla === 'padre' && (
-          <PanelPadre
-            usuario={usuario}
-            perfil={perfil}
-            setPantalla={setPantalla}
-            setUsuario={setUsuario}
-            setPerfil={setPerfil}
-          />
-        )}
-        {pantalla === 'entrenador' && (
-          <PanelEntrenador
-            usuario={usuario}
-            perfil={perfil}
-            setPantalla={setPantalla}
-            setUsuario={setUsuario}
-            setPerfil={setPerfil}
-          />
-        )}
-
       </div>
-    </div>
-  );
-}
+    );
+  }
 
 function Login({ setPantalla, setUsuario, setPerfil }) {
   const [correo, setCorreo] = useState('');
@@ -195,8 +191,19 @@ function Login({ setPantalla, setUsuario, setPerfil }) {
   }
 
   return (
-    <main
-      style={{
+    <div className="login-desktop-shell">
+      <section className="login-hero">
+        <div className="login-hero-card">
+          <img src={logo} alt="Club Cedro" style={{ width: 150 }} />
+          <p>La tecnología que juega para tu club</p>
+          <h1>CLUB CEDRO</h1>
+        </div>
+      </section>
+  
+      <main
+        className="login-card-desktop"
+  
+  style={{
         ...styles.loginContainer,
         gap: 18,
       }}
@@ -353,6 +360,7 @@ function Login({ setPantalla, setUsuario, setPerfil }) {
         Inscribir nuevo deportista
       </button>
     </main>
+    </div>
   );
 }
 
