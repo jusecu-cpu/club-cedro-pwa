@@ -180,12 +180,12 @@ export default function PanelAdmin({ setPantalla, setUsuario, setPerfil }) {
 
                 <div style={styles.adminAvatar}>A</div>
             </header>
-            {menuAbierto && (
+            {menuAbierto && window.innerWidth < 900 && (
                 <div
                     style={styles.adminOverlay}
                     onClick={() => setMenuAbierto(false)}
                 />
-            )}
+                )}
 
             {menuAbierto && (
                 <aside style={styles.sidebarFloating}>
